@@ -84,11 +84,21 @@ country_tab_ui <- function(country, id, country_meta) {
       mainPanel(
         tabsetPanel(id = "country_tabset",
           tabPanel("Map of Relevant Program Areas",
+            div(
+              ifelse(id == "BF", "Burkina Faso is included in this tool as a demonstration of how this tool might be utilized for future technologies (e.g., gene drive) for malaria control. As such, many of the estimates and assumptions, particularly around cost, are uncertain for the malaria application. These will be refined over time as field trials are conducted.", ""),
+              style = ifelse(id == "BF", "font-size: 15px; font-weight: bold; font-style: italic; line-height: 19px; padding-top: 15px;", "height: 0px")
+            ),
             h2("Relevant Mosquito Release Program Areas"),
-            "The following map shows areas where mosquito release programs
-            for malaria control may be most useful based on high prevalence.
-            The colors indicate the cost per disease case averted by the
-            intervention.",
+            ifelse(id == "BF",
+              "The following map shows areas where mosquito release programs
+              for malaria control may be most useful based on high prevalence.
+              The colors indicate the cost per disease case averted by the
+              intervention.",
+              "The following map shows areas where mosquito release programs
+              for dengue control may be most useful based on population
+              density. The colors indicate the cost per disease case averted
+              by the intervention."
+            ),
             withSpinner(leafletOutput(ns("mymap"), height = "700px")),
             h2("Coverage Indicators"),
             "The following table shows each geography's coverage outputs:

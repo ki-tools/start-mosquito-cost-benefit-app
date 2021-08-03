@@ -538,13 +538,13 @@ update_data_from_inputs <- function(
   dat$daly_target_area <- dat$case_target_area * country_meta$daly_per_case
 
   ## building other variables related to what the user puts in
-  dat$tot_ann_cost_target <- dat$tot_ann_cost_km * dat$km_target * AREACOV
-  dat$cost_per_pers_cov <- dat$tot_ann_cost_km / dat$x_pdmean
-  dat$cost_per_case_avert <- dat$tot_ann_cost_km /
+  dat$tot_ann_cost_target <- dat$tot_ann_cost_target * dat$km_target * AREACOV
+  dat$cost_per_pers_cov <- dat$tot_ann_cost_target / dat$x_pdmean
+  dat$cost_per_case_avert <- dat$tot_ann_cost_target /
     (dat$case_target_area * dat$eff)
-  dat$cost_per_death_avert <- dat$tot_ann_cost_km /
+  dat$cost_per_death_avert <- dat$tot_ann_cost_target /
     (dat$death_target_area * dat$eff)
-  dat$cost_per_daly_avert <- dat$tot_ann_cost_km /
+  dat$cost_per_daly_avert <- dat$tot_ann_cost_target /
     (dat$daly_target_area * dat$eff)
 
   dat$amb_cases <- dat$case_target_area * PCT_AMB

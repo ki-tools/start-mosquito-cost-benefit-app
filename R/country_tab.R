@@ -73,6 +73,12 @@ country_tab_ui <- function(country, id, country_meta) {
         numericInput(ns("MORT_RATE"), "Mortality Rate (%):",
             min = 0, max = 100,
             value = country_meta$mortality * 100),
+        conditionalPanel(
+          condition = "input.tabset != 'BF'",
+          numericInput(ns("PREV_RATE"), "Prevalence Rate (%):",
+            min = 0, max = 100,
+            value = country_meta$prevalence * 100),
+        ),
         numericInput(ns("COST_AMB"), "Cost per Ambulatory Visit:",
           value = country_meta$cost_per_amb_case, min = 0, max = 1000000),
         numericInput(ns("COST_HOSP"), "Cost per Hospitalized Visit:",
@@ -217,6 +223,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         PCT_AMB = as.numeric(input$PCT_AMB) / 100,
         PCT_HOSP = as.numeric(input$PCT_HOSP) / 100,
         MORT_RATE = as.numeric(input$MORT_RATE) / 100,
+        PREV_RATE = as.numeric(input$PREV_RATE) / 100,
         COST_AMB = as.numeric(input$COST_AMB),
         COST_HOSP = as.numeric(input$COST_HOSP),
         COST_DEATH = as.numeric(input$COST_DEATH),
@@ -523,8 +530,8 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
 # update data frame with user inputs
 update_data_from_inputs <- function(
   dat, PLANNING, PREP, PROD, DIST, MONITOR, RELEASE, EFF, AREACOV,
-  PCT_AMB, PCT_HOSP, MORT_RATE, COST_AMB, COST_HOSP, COST_DEATH,
-  country_meta
+  PCT_AMB, PCT_HOSP, MORT_RATE, PREV_RATE, COST_AMB, COST_HOSP,
+  COST_DEATH, country_meta
 ) {
   if (is.null(dat))
     return(NULL)
@@ -533,12 +540,13 @@ update_data_from_inputs <- function(
   dat$tot_ann_cost_km <- PLANNING + PREP + PROD + DIST + MONITOR + RELEASE
   dat$eff <- EFF
 
-  dat$case_target_area <- dat$x_pdmean * dat$prev_inc_m
+  dat$case_target_area <- dat$x_pdmean * PREV_RATE
+  dat$prev_inc_m <- PREV_RATE
   dat$death_target_area <- dat$case_target_area * MORT_RATE
   dat$daly_target_area <- dat$case_target_area * country_meta$daly_per_case
 
   ## building other variables related to what the user puts in
-  dat$tot_ann_cost_target <- dat$tot_ann_cost_target * dat$km_target * AREACOV
+  dat$tot_ann_cost_target <- dat$tot_ann_cost_km * dat$km_target * AREACOV
   dat$cost_per_pers_cov <- dat$tot_ann_cost_target / dat$x_pdmean
   dat$cost_per_case_avert <- dat$tot_ann_cost_target /
     (dat$case_target_area * dat$eff)
@@ -575,7 +583,6 @@ make_map <- function(data, country_meta, last_admin) {
     bins = mybins)
 
   # pal1 <- colorNumeric("viridis", cost)
-
   leaflet(data) %>%
     addTiles() %>%
     setView(
@@ -594,7 +601,7 @@ make_map <- function(data, country_meta, last_admin) {
       label = maptooltips(data, last_admin),
       labelOptions = labelOptions(
         style = list("font-weight" = "normal", padding = "3px 8px"),
-        textsize = "13px", 
+        textsize = "13px",
         direction = "auto"
       )
     ) %>%
@@ -617,7 +624,7 @@ maptooltips <- function(dat, last_admin) {
    paste0(
       last_admin, ": ", dat[[last_admin]], "<br/>",
       "Target Population: ",  format_big(dat$x_pdmean), "<br/>",
-      "Incidence: ", round(dat$prev_inc_m, 3), "<br/>",
+      # "Incidence: ", round(dat$prev_inc_m, 3), "<br/>",
       "Total Area: ",  format_big(dat$area_km2), "<br/>",
       "Target Area: ",  format_big(dat$km_target), "<br/>",
       "Total Program Cost (User Generated): ", "$",

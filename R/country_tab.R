@@ -2,11 +2,10 @@
 # reference: https://mastering-shiny.org/scaling-modules.html
 library(shinycssloaders)
 
-#' @param country country name
 #' @param id country ID (used to set the tab ID)
-country_tab_ui <- function(country, id, country_meta) {
+country_tab_ui <- function(id, country_meta) {
   ns <- shiny::NS(id)
-  tabPanel(country, value = id,
+  div(
     sidebarLayout(
       sidebarPanel(position = "left", width = 3,
         h3(strong("Primary Cost Inputs", align = "left")),

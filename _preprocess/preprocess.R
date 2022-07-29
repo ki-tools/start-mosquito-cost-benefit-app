@@ -107,7 +107,6 @@ lapply(names(a), function(nm) {
   message()
 }) -> nul
 
-
 lapply(names(a), function(nm) {
   message(nm)
   message("Previous data:")

@@ -18,7 +18,7 @@ app_theme <- bslib::bs_theme(
   # base_font = bslib::font_google("Poppins"),
   # base_font = bslib::font_google("Open Sans"),
   # base_font = bslib::font_google("Lato"),
-  base_font = bslib::font_google("Montserrat"),
+  base_font = bslib::font_google("Montserrat", wght = "300;400;500;600;700"),
   # base_font = bslib::font_google("Raleway"),
   # font_scale = 1.2,
   "navbar-light-bg" = "#dddddd"
@@ -40,9 +40,11 @@ tags <- htmltools::tags
 app_nav_item <- function(id, val, active = FALSE) {
   tags$li(
     class = "nav-item border-bottom",
+    style = "border-color: #000000 !important",
     role = "presentation",
     tags$button(
-      class = paste0("nav-link w-100 text-start fw-normal fs-6", ifelse(active, " active", "")),
+      class = paste0("nav-link w-100 text-start fs-6", ifelse(active, " active", "")),
+      style = "font-weight: 600; color: white;",
       id = paste0("pills-", id, "-tab"),
       "data-bs-toggle" = "pill",
       "data-bs-target" = paste0("#pills-", id),
@@ -65,20 +67,30 @@ app_nav_content <- function(id, ..., active = FALSE) {
   )
 }
 
-app_header <- function(title) {
+# "The Benefits and Costs of Scaling Up Mosquito Release Technologies for Dengue Prevention"
+app_header <- function() {
   tags$header(
-    class = "py-3 px-2 mb-3 border-bottom",
-    style = "background: #dddddd;",
+    class = "py-2 px-0 mb-3 border-bottom",
+    style = "background: #2a2a2a;",
     tags$div(
       class = "container-fluid d-flex justify-content-between",
       tags$div(
-        class = "fs-4 fw-bold",
-        title
+        class = "col",
+        tags$div(
+          class = "fs-3 fw-bold",
+          style = "color: white;",
+          "Scaling Mosquito Release Technologies for Dengue Prevention"
+        ),
+        tags$div(
+          class = "fs-4",
+          style = "color: white; font-weight: 500;",
+          "Cost-Benefit Analysis Tool"
+        )
       ),
       tags$div(
         class = "d-flex",
         tags$a(href = "https://www.washington.edu/research/research-centers/start-center/", target = "_blank",
-          tags$img(src = "START_306_logo.png", height = "40px")
+          tags$img(src = "start_header_black.png", height = "70px")
         )
       )
     )
@@ -92,21 +104,21 @@ sidebar_menu <- function(...) {
 # front end interface
 ui <- bslib::page_fill(
   theme = app_theme,
-  app_header("The Benefits and Costs of Scaling Up Mosquito Release Technologies for Dengue Prevention"),
+  app_header(),
   tags$div(
     class = "d-flex",
     tags$div(
       class = "overflow-auto",
-      style = "min-width: 200px; height: calc(100vh - 100px);",
+      style = "min-width: 200px; height: calc(100vh - 100px); background: #494949; margin-top: -17px; padding-top: 18px;",
       tags$ul(
         class = "nav nav-pills flex-column",
         id = "pills-tab",
         role = "tablist",
-        app_nav_item("userguide", "User Guide", active = TRUE),
+        app_nav_item("userguide", "User Guide"),
         app_nav_item("datasources", "Data Sources, Assumptions, & Cautions"),
         app_nav_item("BGD", "Bangladesh"),
         app_nav_item("BRA", "Brazil"),
-        app_nav_item("COL", "Colombia"),
+        app_nav_item("COL", "Colombia", active = TRUE),
         app_nav_item("IND", "India"),
         app_nav_item("IDN", "Indonesia"),
         app_nav_item("MEX", "Mexico"),
@@ -118,11 +130,11 @@ ui <- bslib::page_fill(
     tags$div(
       class = "tab-content",
       id = "pills-tabContent",
-      app_nav_content("userguide", active = TRUE, user_guide_tab()),
+      app_nav_content("userguide", user_guide_tab()),
       app_nav_content("datasources", data_assumption_caution_tab()),
       app_nav_content("BGD", country_tab_ui("BGD", country_meta$BGD)),
       app_nav_content("BRA", country_tab_ui("BRA", country_meta$BRA)),
-      app_nav_content("COL", country_tab_ui("COL", country_meta$COL)),
+      app_nav_content("COL", active = TRUE, country_tab_ui("COL", country_meta$COL)),
       app_nav_content("IND", country_tab_ui("IND", country_meta$IND)),
       app_nav_content("IDN", country_tab_ui("IDN", country_meta$IDN)),
       app_nav_content("MEX", country_tab_ui("MEX", country_meta$MEX)),

@@ -9,6 +9,9 @@ library(dplyr)
 library(sf)
 library(bslib)
 library(showtext)
+library(fontawesome)
+
+# <i class="fa-solid fa-signs-post"></i>
 
 app_theme <- bslib::bs_theme(
   bootswatch = "cosmo",
@@ -46,6 +49,8 @@ app_nav_item <- function(id, val, active = FALSE) {
       class = paste0("nav-link w-100 text-start fs-6", ifelse(active, " active", "")),
       style = "font-weight: 600; color: white;",
       id = paste0("pills-", id, "-tab"),
+      "data-value" = id,
+      "data-toggle" = "pill",
       "data-bs-toggle" = "pill",
       "data-bs-target" = paste0("#pills-", id),
       type = "button",
@@ -111,11 +116,21 @@ ui <- bslib::page_fill(
       class = "overflow-auto",
       style = "width: 240px; min-width: 240px; height: calc(100vh - 94px); background: #494949; margin-top: -17px; padding-top: 18px;",
       tags$ul(
-        class = "nav nav-pills flex-column",
-        id = "pills-tab",
+        class = "nav nav-pills flex-column shiny-tab-input",
+        id = "tabset",
         role = "tablist",
-        app_nav_item("userguide", "User Guide"),
-        app_nav_item("datasources", "Data Sources, Assumptions, & Cautions"),
+        app_nav_item("userguide", tags$span(fa("signs-post"), "User Guide")),
+        app_nav_item("datasources", tags$span(fa("triangle-exclamation"), "Data Sources, Assumptions, & Cautions")),
+        tags$li(
+          class = "nav-item py-2 px-3",
+          style = "border-bottom: 1px solid rgba(255, 255, 255, 0.2); background: #5d5d5d;",
+          role = "presentation",
+          tags$span(
+            class = "w-100 fs-6",
+            style = "font-weight: 600; color: white;",
+            fa("angle-down"), "Countries"
+          )
+        ),
         app_nav_item("BGD", "Bangladesh"),
         app_nav_item("BRA", "Brazil"),
         app_nav_item("COL", "Colombia", active = TRUE),
@@ -128,58 +143,63 @@ ui <- bslib::page_fill(
       )
     ),
     tags$div(
-      class = "tab-content",
-      id = "pills-tabContent",
-      app_nav_content("userguide", user_guide_tab()),
-      app_nav_content("datasources", data_assumption_caution_tab()),
-      app_nav_content("BGD", country_tab_ui("BGD", country_meta$BGD)),
-      app_nav_content("BRA", country_tab_ui("BRA", country_meta$BRA)),
-      app_nav_content("COL", active = TRUE, country_tab_ui("COL", country_meta$COL)),
-      app_nav_content("IND", country_tab_ui("IND", country_meta$IND)),
-      app_nav_content("IDN", country_tab_ui("IDN", country_meta$IDN)),
-      app_nav_content("MEX", country_tab_ui("MEX", country_meta$MEX)),
-      app_nav_content("NGA", country_tab_ui("NGA", country_meta$NGA)),
-      app_nav_content("LKA", country_tab_ui("LKA", country_meta$LKA)),
-      app_nav_content("VNM", country_tab_ui("VNM", country_meta$VNM))
+      class = "col",
+      tags$div(
+        class = "row",
+        tags$div(
+          class = "container",
+          style = "margin-left: 355px; margin-bottom: 10px; height: 60px; width: calc(100vw - 590px); color: #FFFFFFAA; font-weight: 600; font-size: 25px;",
+          tags$div(
+            class = "row",
+            tags$div(
+              class = "col mx-1 py-2 px-3",
+              style = "background: #e49444; height: 60px;",
+              "Total Budget"
+            ),
+            tags$div(
+              class = "col mx-1 py-2 px-3",
+              style = "background: #d1615d; height: 60px;",
+              "Cases Averted"
+            ),
+            tags$div(
+              class = "col mx-1 py-2 px-3",
+              style = "background: #85b6b2; height: 60px;",
+              "Percentage"
+            )
+          )
+        )
+      ),
+      tags$div(
+        class = "tab-content row",
+        id = "pills-tabContent",
+        app_nav_content("userguide", user_guide_tab()),
+        app_nav_content("datasources", data_assumption_caution_tab()),
+        app_nav_content("BGD", country_tab_ui("BGD", country_meta$BGD)),
+        app_nav_content("BRA", country_tab_ui("BRA", country_meta$BRA)),
+        app_nav_content("COL", active = TRUE, country_tab_ui("COL", country_meta$COL)),
+        app_nav_content("IND", country_tab_ui("IND", country_meta$IND)),
+        app_nav_content("IDN", country_tab_ui("IDN", country_meta$IDN)),
+        app_nav_content("MEX", country_tab_ui("MEX", country_meta$MEX)),
+        app_nav_content("NGA", country_tab_ui("NGA", country_meta$NGA)),
+        app_nav_content("LKA", country_tab_ui("LKA", country_meta$LKA)),
+        app_nav_content("VNM", country_tab_ui("VNM", country_meta$VNM))
+      )
     )
   )
-  # div(
-  #   style = "background: 'red';",
-  #   div(
-  #     bslib::navs_pill_list(
-  #       id = "tabset",
-  #       user_guide_tab(), # R/user_guide_tab.R
-  #       data_assumption_caution_tab(), # R/data_assump_caut.R
-  #       country_tab_ui("Bangladesh", "BGD", country_meta$BGD),
-  #       country_tab_ui("Brazil", "BRA", country_meta$BRA),
-  #       country_tab_ui("Colombia", "COL", country_meta$COL),
-  #       country_tab_ui("India", "IND", country_meta$IND),
-  #       country_tab_ui("Indonesia", "IDN", country_meta$IDN),
-  #       country_tab_ui("Mexico", "MEX", country_meta$MEX),
-  #       country_tab_ui("Nigeria", "NGA", country_meta$NGA),
-  #       country_tab_ui("Sri Lanka", "LKA", country_meta$LKA),
-  #       country_tab_ui("Vietnam", "VNM", country_meta$VNM)
-  #     )
-  #   ),
-  #   mainPanel(
-  #   )
-  # )
 )
 
 # back end logic
 # input$tabset is a variable containing the currently-selected tab
 server <- function(input, output, session) {
-  # country_tab_server("IDN", dataset, reactive(input$tabset), country_meta$IDN)
-  # country_tab_server("BRA", dataset, reactive(input$tabset), country_meta$BRA)
-  # country_tab_server("MEX", dataset, reactive(input$tabset), country_meta$MEX)
-  # country_tab_server("COL", dataset, reactive(input$tabset), country_meta$COL)
-  # country_tab_server("VNM", dataset, reactive(input$tabset), country_meta$VNM)
-  # country_tab_server("LKA", dataset, reactive(input$tabset), country_meta$LKA)
-
-  # country_tab_server("IND", dataset, reactive(input$tabset), country_meta$IND)
-  # country_tab_server("NGA", dataset, reactive(input$tabset), country_meta$NGA)
-  # country_tab_server("BGD", dataset, reactive(input$tabset), country_meta$BGD)
-
+  country_tab_server("IDN", dataset, reactive(input$tabset), country_meta$IDN)
+  country_tab_server("BRA", dataset, reactive(input$tabset), country_meta$BRA)
+  country_tab_server("MEX", dataset, reactive(input$tabset), country_meta$MEX)
+  country_tab_server("COL", dataset, reactive(input$tabset), country_meta$COL)
+  country_tab_server("VNM", dataset, reactive(input$tabset), country_meta$VNM)
+  country_tab_server("LKA", dataset, reactive(input$tabset), country_meta$LKA)
+  country_tab_server("IND", dataset, reactive(input$tabset), country_meta$IND)
+  country_tab_server("NGA", dataset, reactive(input$tabset), country_meta$NGA)
+  country_tab_server("BGD", dataset, reactive(input$tabset), country_meta$BGD)
 }
 
 # Run the application

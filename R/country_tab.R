@@ -12,7 +12,7 @@ country_tab_ui <- function(id, country_meta) {
     div(class = "row",
       div(
         class = "col",
-        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; padding-bottom: 15px;",
+        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; margin-top: -70px; padding-bottom: 15px;",
         class = "border-0 overflow-auto",
         h3(strong("Primary Cost Inputs", align = "left"), class = "mt-0"),
         strong("Please enter the estimated cost for each program phase:"),
@@ -70,22 +70,15 @@ country_tab_ui <- function(id, country_meta) {
       ),
       div(
         class = "col",
-
         tabsetPanel(id = "country_tabset",
           tabPanel("Map of Relevant Program Areas",
             style = tab_style,
             h2("Relevant Mosquito Release Program Areas"),
-            ifelse(id == "BF",
-              "The following map shows areas where mosquito release programs
-              for malaria control may be most useful based on high prevalence.
-              The colors indicate the cost per disease case averted by the
-              intervention.",
-              "The following map shows areas where mosquito release programs
-              for dengue control may be most useful based on population
-              density. The colors indicate the cost per disease case averted
-              by the intervention."
-            ),
-            withSpinner(leafletOutput(ns("mymap"), height = "700px")),
+            "The following map shows areas where mosquito release programs
+            for dengue control may be most useful based on population
+            density. The colors indicate the cost per disease case averted
+            by the intervention.",
+            withSpinner(leafletOutput(ns("mymap"), height = "600px")),
             h2("Coverage Indicators"),
             "The following table shows each geography's coverage outputs:
             area covered by the program, people covered by the program, and
@@ -100,13 +93,13 @@ country_tab_ui <- function(id, country_meta) {
             per person covered by the intervention, cost per case averted by
             the intervention and cost per DALY averted by the intervention.",
             withSpinner(dataTableOutput(ns("keyindicators"))),
-            h2("Cost Per Case Averted vs. Cost Per DALY Averted"),
-            "The following plot shows cost per case vs. cost per DALY
-            by geography",
-            withSpinner(plotlyOutput(ns("keyindicatorsplot"))),
-            h2("Total Annual Cost"),
-            "The following plot shows the total annual cost by geography",
-            withSpinner(plotlyOutput(ns("keyindicatorsplot2")))
+            # h2("Cost Per Case Averted vs. Cost Per DALY Averted"),
+            # "The following plot shows cost per case vs. cost per DALY
+            # by geography",
+            # withSpinner(plotlyOutput(ns("keyindicatorsplot"))),
+            # h2("Total Annual Cost"),
+            # "The following plot shows the total annual cost by geography",
+            # withSpinner(plotlyOutput(ns("keyindicatorsplot2")))
           ),
           tabPanel("Health Outcomes",
             style = tab_style,
@@ -115,12 +108,12 @@ country_tab_ui <- function(id, country_meta) {
             total cases, cost per case averted, total DALYs, cost per DALY
             averted.",
             withSpinner(dataTableOutput(ns("healthoutcomesdata"))),
-            h2("Cost Per Case Averted"),
-            "The following plot shows each geography's cost per case averted.",
-            withSpinner(plotlyOutput(ns("healthoutcomesdataplot"))),
-            h2("Total Cases in Target Area"),
-            "The following plot shows the total cases in each target area.",
-            withSpinner(plotlyOutput(ns("healthoutcomesdataplot2")))
+            # h2("Cost Per Case Averted"),
+            # "The following plot shows each geography's cost per case averted.",
+            # withSpinner(plotlyOutput(ns("healthoutcomesdataplot"))),
+            # h2("Total Cases in Target Area"),
+            # "The following plot shows the total cases in each target area.",
+            # withSpinner(plotlyOutput(ns("healthoutcomesdataplot2")))
           ),
           tabPanel("Health System Costs",
             style = tab_style,
@@ -130,14 +123,14 @@ country_tab_ui <- function(id, country_meta) {
             health system costs averted with a successful mosquito release
             intervention.",
             withSpinner(dataTableOutput(ns("healthsystemoutcomesdata"))),
-            h2("Ambulatory Costs Averted"),
-            "The following plot shows total ambulatory costs averted in each
-            geography.",
-            withSpinner(plotlyOutput(ns("healthsystemoutcomesdataplot"))),
-            h2("Hospital Costs Averted"),
-            "The following plot shows total hospital costs averted in each
-            geography.",
-            withSpinner(plotlyOutput(ns("healthsystemoutcomesdataplot2")))
+            # h2("Ambulatory Costs Averted"),
+            # "The following plot shows total ambulatory costs averted in each
+            # geography.",
+            # withSpinner(plotlyOutput(ns("healthsystemoutcomesdataplot"))),
+            # h2("Hospital Costs Averted"),
+            # "The following plot shows total hospital costs averted in each
+            # geography.",
+            # withSpinner(plotlyOutput(ns("healthsystemoutcomesdataplot2")))
           ),
           tabPanel("Economic Costs",
             style = tab_style,
@@ -145,7 +138,7 @@ country_tab_ui <- function(id, country_meta) {
             "The following table shows each geography's total deaths, cost per
             death averted, and economic losses due to disease fatalities.",
             withSpinner(dataTableOutput(ns("economicoutcomesdata"))),
-            withSpinner(plotlyOutput(ns("economicoutcomesdataplot")))
+            # withSpinner(plotlyOutput(ns("economicoutcomesdataplot")))
           )
         )
       )
@@ -178,6 +171,8 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     # selects current data based on the tab that is being viewed
     # dataset is a named list of datasets with name corresponding to tab value
     cur_dat <- reactive({
+      # message("tab: ", tab())
+      # message("id: ", id)
       if (tab() != id)
         return(NULL)
       res <- dataset[[tab()]]
@@ -315,153 +310,153 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     output$keyindicators <- shiny::renderDataTable(keyindicators(),
       options = dt_opts5)
 
-    output$keyindicatorsplot <- renderPlotly({
-      if (is.null(keyindicators()))
-        return(NULL)
-      ggplot(data = keyindicators() %>% filter(`Per case` < 1000),
-        aes_string(x = "`Per DALY`", y = "`Per case`",
-          color = first_admin, label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # xlim(0, 10) +
-        # ylim(0, 10) +
-        theme_classic() +
-        labs(
-          y = "Cost Per Case Averted (USD)",
-          x = "Cost per DALY Averted (USD)") +
-        ggtitle(paste("Key Cost Indicators Colored by", first_admin,
-          "(with cost per case < 1000)"))
-    })
+    # output$keyindicatorsplot <- renderPlotly({
+    #   if (is.null(keyindicators()))
+    #     return(NULL)
+    #   ggplot(data = keyindicators() %>% filter(`Per case` < 1000),
+    #     aes_string(x = "`Per DALY`", y = "`Per case`",
+    #       color = first_admin, label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # xlim(0, 10) +
+    #     # ylim(0, 10) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Cost Per Case Averted (USD)",
+    #       x = "Cost per DALY Averted (USD)") +
+    #     ggtitle(paste("Key Cost Indicators Colored by", first_admin,
+    #       "(with cost per case < 1000)"))
+    # })
 
-    output$keyindicatorsplot2 <- renderPlotly({
-      if (is.null(keyindicators()))
-        return(NULL)
-      keyindicators() %>%
-        arrange(-Total) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "Total", color = first_admin,
-          label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 100000000) +
-        theme_classic() +
-        labs(
-          y = "Total Annual Cost for Target Area (USD)",
-          x = paste(first_admin, "Rank")) +
-        ggtitle(paste("Total Annual Program Cost Colored by", first_admin)) +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$keyindicatorsplot2 <- renderPlotly({
+    #   if (is.null(keyindicators()))
+    #     return(NULL)
+    #   keyindicators() %>%
+    #     arrange(-Total) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "Total", color = first_admin,
+    #       label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 100000000) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Total Annual Cost for Target Area (USD)",
+    #       x = paste(first_admin, "Rank")) +
+    #     ggtitle(paste("Total Annual Program Cost Colored by", first_admin)) +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
     output$healthoutcomesdata <- renderDataTable(healthoutcomes(),
       options = dt_opts5)
 
-    output$healthoutcomesdataplot <- renderPlotly({
-      if (is.null(healthoutcomes()))
-        return(NULL)
-      healthoutcomes() %>%
-        arrange(desc(.data$"Cost per case")) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "`Cost per case`",
-          color = first_admin, label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 10) +
-        theme_classic() +
-        labs(
-          y = "Cost Per Case Averted (USD)",
-          x = paste(last_admin, "Rank"),
-          title = paste0("Cost Per Case Averted Colored by", first_admin)) +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$healthoutcomesdataplot <- renderPlotly({
+    #   if (is.null(healthoutcomes()))
+    #     return(NULL)
+    #   healthoutcomes() %>%
+    #     arrange(desc(.data$"Cost per case")) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "`Cost per case`",
+    #       color = first_admin, label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 10) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Cost Per Case Averted (USD)",
+    #       x = paste(last_admin, "Rank"),
+    #       title = paste0("Cost Per Case Averted Colored by", first_admin)) +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
-    output$healthoutcomesdataplot2 <- renderPlotly({
-      if (is.null(healthoutcomes()))
-        return(NULL)
-      healthoutcomes() %>%
-        arrange(desc(.data[["Cases"]])) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "Cases", color = first_admin,
-          label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 10000) +
-        theme_classic() +
-        labs(
-          y = "Total Cases in Target Area",
-          x = paste(last_admin, "Rank")) +
-        ggtitle("Total Cases in Target Area") +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$healthoutcomesdataplot2 <- renderPlotly({
+    #   if (is.null(healthoutcomes()))
+    #     return(NULL)
+    #   healthoutcomes() %>%
+    #     arrange(desc(.data[["Cases"]])) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "Cases", color = first_admin,
+    #       label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 10000) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Total Cases in Target Area",
+    #       x = paste(last_admin, "Rank")) +
+    #     ggtitle("Total Cases in Target Area") +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
     output$healthsystemoutcomesdata <- renderDataTable(healthsystemoutcomes(),
       options = dt_opts5)
 
-    output$healthsystemoutcomesdataplot <- renderPlotly({
-      if (is.null(healthsystemoutcomes()))
-        return(NULL)
-      healthsystemoutcomes() %>%
-        arrange(desc(.data$"Ambulatory Costs")) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "`Ambulatory Costs`",
-          color = first_admin, label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 600000) +
-        theme_classic() +
-        labs(
-          y = "Total Ambulatory Costs in Target Area",
-          x = paste(last_admin, "Rank")) +
-        ggtitle("Ambulatory Costs Averted in Target Area") +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$healthsystemoutcomesdataplot <- renderPlotly({
+    #   if (is.null(healthsystemoutcomes()))
+    #     return(NULL)
+    #   healthsystemoutcomes() %>%
+    #     arrange(desc(.data$"Ambulatory Costs")) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "`Ambulatory Costs`",
+    #       color = first_admin, label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 600000) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Total Ambulatory Costs in Target Area",
+    #       x = paste(last_admin, "Rank")) +
+    #     ggtitle("Ambulatory Costs Averted in Target Area") +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
-    output$healthsystemoutcomesdataplot2 <- renderPlotly({
-      if (is.null(healthsystemoutcomes()))
-        return(NULL)
-      healthsystemoutcomes() %>%
-        arrange(desc(.data$"Hospital Costs")) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "`Hospital Costs`",
-          color = first_admin, label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 600000) +
-        theme_classic() +
-        labs(
-          y = "Total Hospitalized Costs in Target Area",
-          x = paste(last_admin, "Rank")) +
-        ggtitle("Hospitalized Costs Averted in Target Area") +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$healthsystemoutcomesdataplot2 <- renderPlotly({
+    #   if (is.null(healthsystemoutcomes()))
+    #     return(NULL)
+    #   healthsystemoutcomes() %>%
+    #     arrange(desc(.data$"Hospital Costs")) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "`Hospital Costs`",
+    #       color = first_admin, label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 600000) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Total Hospitalized Costs in Target Area",
+    #       x = paste(last_admin, "Rank")) +
+    #     ggtitle("Hospitalized Costs Averted in Target Area") +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
     output$economicoutcomesdata <- renderDataTable(economicoutcomes(),
       options = dt_opts5)
 
-    output$economicoutcomesdataplot <- renderPlotly({
-      if (is.null(economicoutcomes()))
-        return(NULL)
-      economicoutcomes() %>%
-        arrange(desc(.data$"Economic losses")) %>%
-        mutate(rank = seq_len(n())) %>%
-      ggplot(
-        aes_string(x = "rank", y = "`Economic losses`",
-          color = first_admin, label = last_admin)) +
-        geom_point(na.rm = TRUE) +
-        # ggthemes::scale_color_tableau() +
-        # ylim(0, 1000000) +
-        theme_classic() +
-        labs(
-          y = "Total Economic Losses",
-          x = paste(last_admin, "Rank")) +
-        ggtitle(paste0("Economic Losses Averted in Target Areas of ",
-          last_admin, "s")) +
-        theme(axis.text.x = element_text(angle = 45))
-    })
+    # output$economicoutcomesdataplot <- renderPlotly({
+    #   if (is.null(economicoutcomes()))
+    #     return(NULL)
+    #   economicoutcomes() %>%
+    #     arrange(desc(.data$"Economic losses")) %>%
+    #     mutate(rank = seq_len(n())) %>%
+    #   ggplot(
+    #     aes_string(x = "rank", y = "`Economic losses`",
+    #       color = first_admin, label = last_admin)) +
+    #     geom_point(na.rm = TRUE) +
+    #     # ggthemes::scale_color_tableau() +
+    #     # ylim(0, 1000000) +
+    #     theme_classic() +
+    #     labs(
+    #       y = "Total Economic Losses",
+    #       x = paste(last_admin, "Rank")) +
+    #     ggtitle(paste0("Economic Losses Averted in Target Areas of ",
+    #       last_admin, "s")) +
+    #     theme(axis.text.x = element_text(angle = 45))
+    # })
 
     # update leaflet plot when user updates inputs
     observeEvent(input$submit, {
@@ -597,7 +592,8 @@ make_map <- function(data, country_meta, last_admin) {
       opacity = 0.9,
       # title = "Target Area (KM2)",
       title = "Cost per case averted",
-      position = "bottomleft")
+      position = "bottomleft") %>%
+    addProviderTiles(providers$CartoDB.Positron)
 }
 
 format_big <- function(x)

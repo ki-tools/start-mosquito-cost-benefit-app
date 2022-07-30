@@ -114,7 +114,7 @@ ui <- bslib::page_fill(
     class = "d-flex",
     tags$div(
       class = "overflow-auto",
-      style = "width: 240px; min-width: 240px; height: calc(100vh - 94px); background: #494949; margin-top: -17px; padding-top: 18px;",
+      style = "width: 240px; min-width: 240px; height: calc(100vh - 94px); background: #494949DD; margin-top: -17px; padding-top: 18px;",
       tags$ul(
         class = "nav nav-pills flex-column shiny-tab-input",
         id = "tabset",
@@ -123,7 +123,7 @@ ui <- bslib::page_fill(
         app_nav_item("datasources", tags$span(fa("triangle-exclamation"), "Data Sources, Assumptions, & Cautions")),
         tags$li(
           class = "nav-item py-2 px-3",
-          style = "border-bottom: 1px solid rgba(255, 255, 255, 0.2); background: #5d5d5d;",
+          style = "border-bottom: 1px solid rgba(255, 255, 255, 0.2); background: #494949;",
           role = "presentation",
           tags$span(
             class = "w-100 fs-6",
@@ -144,31 +144,6 @@ ui <- bslib::page_fill(
     ),
     tags$div(
       class = "col",
-      tags$div(
-        class = "row",
-        tags$div(
-          class = "container",
-          style = "margin-left: 355px; margin-bottom: 10px; height: 60px; width: calc(100vw - 590px); color: #FFFFFFAA; font-weight: 600; font-size: 25px;",
-          tags$div(
-            class = "row",
-            tags$div(
-              class = "col mx-1 py-2 px-3",
-              style = "background: #e49444; height: 60px;",
-              "Total Budget"
-            ),
-            tags$div(
-              class = "col mx-1 py-2 px-3",
-              style = "background: #d1615d; height: 60px;",
-              "Cases Averted"
-            ),
-            tags$div(
-              class = "col mx-1 py-2 px-3",
-              style = "background: #85b6b2; height: 60px;",
-              "Percentage"
-            )
-          )
-        )
-      ),
       tags$div(
         class = "tab-content row",
         id = "pills-tabContent",

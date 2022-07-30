@@ -12,14 +12,12 @@ country_tab_ui <- function(id, country_meta) {
     div(class = "row",
       div(
         class = "col",
-        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; margin-top: -70px; padding-bottom: 15px;",
+        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; padding-bottom: 15px;",
         class = "border-0 overflow-auto",
         h3(strong("Primary Cost Inputs", align = "left"), class = "mt-0"),
         strong("Please enter the estimated cost for each program phase:"),
         br(), br(),
-        em("All values are in US dollars per kilometer squared."),
-        br(), br(),
-        em("Suggested ranges for each phase are included below."),
+        em("All values are in US dollars per kilometer squared. Suggested ranges for each phase are included."),
         br(), br(),
         numericInput(ns("PLANNING"), span("Planning Cost:",
           em(style = "font-weight: normal;", "($1,800-$2,900)")),
@@ -54,22 +52,96 @@ country_tab_ui <- function(id, country_meta) {
         numericInput(ns("MORT_RATE"), "Mortality Rate (%):",
             min = 0, max = 100,
             value = country_meta$mortality * 100),
-        conditionalPanel(
-          condition = "input.tabset != 'BF'",
-          numericInput(ns("PREV_RATE"), "Prevalence Rate (%):",
-            min = 0, max = 100,
-            value = country_meta$prevalence * 100),
-        ),
+        # conditionalPanel(
+        #   condition = "input.tabset != 'BF'",
+        #   numericInput(ns("PREV_RATE"), "Prevalence Rate (%):",
+        #     min = 0, max = 100,
+        #     value = country_meta$prevalence * 100),
+        # ),
         numericInput(ns("COST_AMB"), "Cost per Ambulatory Visit:",
           value = country_meta$cost_per_amb_case, min = 0, max = 1000000),
         numericInput(ns("COST_HOSP"), "Cost per Hospitalized Visit:",
           value = country_meta$cost_per_hosp_case, min = 0, max = 1000000),
         numericInput(ns("COST_DEATH"), "Cost per Death:",
           value = country_meta$cost_per_child_fat, min = 0, max = 1000000),
+        shinyWidgets::checkboxGroupButtons(
+          width = "100%",
+          individual = TRUE,
+          # justified = TRUE,
+          inputId = ns("popdensity"),
+          label = "Population density: ",
+          choices = c("0-500" = 1, "500-750" = 2, ">750" = 3),
+          selected = c("1", "2", "3")
+        ),
+        # # TODO: make this a separate function
+        # tags$div(
+        #   class = "btn-group",
+        #   role = "group",
+        #   tags$input(
+        #     type = "checkbox",
+        #     class = "btn-check",
+        #     id = "btncheck1",
+        #     autocomplete = "off"
+        #   ),
+        #   tags$label(
+        #     class = "btn btn-outline-primary",
+        #     "for" = "btncheck1",
+        #     "box 1"
+        #   ),
+        #   tags$input(
+        #     type = "checkbox",
+        #     class = "btn-check",
+        #     id = "btncheck2",
+        #     autocomplete = "off"
+        #   ),
+        #   tags$label(
+        #     class = "btn btn-outline-primary",
+        #     "for" = "btncheck2",
+        #     "box 2"
+        #   ),
+        #   tags$input(
+        #     type = "checkbox",
+        #     class = "btn-check",
+        #     id = "btncheck3",
+        #     autocomplete = "off"
+        #   ),
+        #   tags$label(
+        #     class = "btn btn-outline-primary",
+        #     "for" = "btncheck3",
+        #     "box 3"
+        #   )
+        # ),
         actionButton(ns("submit"), "Submit")
       ),
       div(
         class = "col",
+        tags$div(
+          class = "row",
+          tags$div(
+            class = "container",
+            style = "margin-bottom: 10px; width: calc(100vw - 590px); color: #FFFFFFAA; font-weight: 600; font-size: 24px;",
+            tags$div(
+              class = "row",
+              tags$div(
+                class = "col mx-1 py-2 text-center",
+                style = "background: #e49444;",
+                "Total Budget: ",
+                textOutput(ns("totalbudget"), inline = TRUE)
+              ),
+              tags$div(
+                class = "col mx-1 py-2 text-center",
+                style = "background: #d1615d;",
+                "Cases Averted: ",
+                textOutput(ns("casesaverted"), inline = TRUE)
+              ),
+              tags$div(
+                class = "col mx-1 py-2 text-center",
+                style = "background: #85b6b2;",
+                "xx%"
+              )
+            )
+          )
+        ),
         tabsetPanel(id = "country_tabset",
           tabPanel("Map of Relevant Program Areas",
             style = tab_style,
@@ -202,7 +274,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         PCT_AMB = as.numeric(input$PCT_AMB) / 100,
         PCT_HOSP = as.numeric(input$PCT_HOSP) / 100,
         MORT_RATE = as.numeric(input$MORT_RATE) / 100,
-        PREV_RATE = as.numeric(input$PREV_RATE) / 100,
+        PREV_RATE = country_meta$prevalence,
         COST_AMB = as.numeric(input$COST_AMB),
         COST_HOSP = as.numeric(input$COST_HOSP),
         COST_DEATH = as.numeric(input$COST_DEATH),
@@ -245,6 +317,33 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
           "Per case" = cost_per_case_avert,
           "Per DALY" = cost_per_daly_avert
         )
+    })
+
+    totalbudget <- reactive({
+      if (is.null(cur_dat_aug())) {
+        return(NULL)
+      }
+      res <- sum(cur_dat_aug()$tot_ann_cost_target)
+      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
+      paste0("$", format(res, trim = TRUE), "M")
+    })
+
+    casesaverted <- reactive({
+      if (is.null(cur_dat_aug())) {
+        return(NULL)
+      }
+      res <- sum(cur_dat_aug()$case_target_area)
+      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
+      paste0(format(res, trim = TRUE), "M")
+    })
+
+    pctaverted <- reactive({
+      if (is.null(cur_dat_aug())) {
+        return(NULL)
+      }
+      res <- sum(cur_dat_aug()$case_target_area)
+      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
+      paste0(format(res, trim = TRUE), "M")
     })
 
     healthoutcomes <- reactive({
@@ -350,6 +449,9 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
 
     output$healthoutcomesdata <- renderDataTable(healthoutcomes(),
       options = dt_opts5)
+
+    output$totalbudget <- renderText(totalbudget())
+    output$casesaverted <- renderText(casesaverted())
 
     # output$healthoutcomesdataplot <- renderPlotly({
     #   if (is.null(healthoutcomes()))

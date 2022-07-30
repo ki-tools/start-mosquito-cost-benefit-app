@@ -2,15 +2,18 @@
 # reference: https://mastering-shiny.org/scaling-modules.html
 library(shinycssloaders)
 
+tab_style <- "height: calc(100vh - 154px); overflow: auto;"
+
 #' @param id country ID (used to set the tab ID)
 country_tab_ui <- function(id, country_meta) {
   ns <- shiny::NS(id)
   div(
     class = "px-3",
-    sidebarLayout(
-      sidebarPanel(position = "left", width = 3,
+    div(class = "row",
+      div(
+        class = "col",
+        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; padding-bottom: 15px;",
         class = "border-0 overflow-auto",
-        style = "height: calc(100vh - 100px)",
         h3(strong("Primary Cost Inputs", align = "left"), class = "mt-0"),
         strong("Please enter the estimated cost for each program phase:"),
         br(), br(),
@@ -65,13 +68,12 @@ country_tab_ui <- function(id, country_meta) {
           value = country_meta$cost_per_child_fat, min = 0, max = 1000000),
         actionButton(ns("submit"), "Submit")
       ),
-      mainPanel(
+      div(
+        class = "col",
+
         tabsetPanel(id = "country_tabset",
           tabPanel("Map of Relevant Program Areas",
-            div(
-              ifelse(id == "BF", "Burkina Faso is included in this tool as a demonstration of how this tool might be utilized for future technologies (e.g., gene drive) for malaria control. As such, many of the estimates and assumptions, particularly around cost, are uncertain for the malaria application. These will be refined over time as field trials are conducted.", ""),
-              style = ifelse(id == "BF", "font-size: 15px; font-weight: bold; font-style: italic; line-height: 19px; padding-top: 15px;", "height: 0px")
-            ),
+            style = tab_style,
             h2("Relevant Mosquito Release Program Areas"),
             ifelse(id == "BF",
               "The following map shows areas where mosquito release programs
@@ -91,6 +93,7 @@ country_tab_ui <- function(id, country_meta) {
             withSpinner(dataTableOutput(ns("outputs")))
           ),
           tabPanel("Key Cost Indicators",
+            style = tab_style,
             h2("Key Cost Indicators"),
             "The following table shows each geography's target area
             (in kilometers squared), total cost to cover the target area, cost
@@ -106,6 +109,7 @@ country_tab_ui <- function(id, country_meta) {
             withSpinner(plotlyOutput(ns("keyindicatorsplot2")))
           ),
           tabPanel("Health Outcomes",
+            style = tab_style,
             h2("Health Outcomes"),
             "The following table shows each geography's disease prevalence,
             total cases, cost per case averted, total DALYs, cost per DALY
@@ -119,6 +123,7 @@ country_tab_ui <- function(id, country_meta) {
             withSpinner(plotlyOutput(ns("healthoutcomesdataplot2")))
           ),
           tabPanel("Health System Costs",
+            style = tab_style,
             h2("Health System Costs Averted"),
             "The following table shows each geography's total ambulatory cases
             and costs averted, hospitalized cases and costs averted, and total
@@ -135,6 +140,7 @@ country_tab_ui <- function(id, country_meta) {
             withSpinner(plotlyOutput(ns("healthsystemoutcomesdataplot2")))
           ),
           tabPanel("Economic Costs",
+            style = tab_style,
             h2("Economic Costs Averted"),
             "The following table shows each geography's total deaths, cost per
             death averted, and economic losses due to disease fatalities.",

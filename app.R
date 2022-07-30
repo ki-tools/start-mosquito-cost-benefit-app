@@ -39,8 +39,8 @@ tags <- htmltools::tags
 
 app_nav_item <- function(id, val, active = FALSE) {
   tags$li(
-    class = "nav-item border-bottom",
-    style = "border-color: #000000 !important",
+    class = "nav-item",
+    style = "border-bottom: 1px solid rgba(255, 255, 255, 0.2);",
     role = "presentation",
     tags$button(
       class = paste0("nav-link w-100 text-start fs-6", ifelse(active, " active", "")),
@@ -109,7 +109,7 @@ ui <- bslib::page_fill(
     class = "d-flex",
     tags$div(
       class = "overflow-auto",
-      style = "min-width: 200px; height: calc(100vh - 100px); background: #494949; margin-top: -17px; padding-top: 18px;",
+      style = "width: 240px; min-width: 240px; height: calc(100vh - 94px); background: #494949; margin-top: -17px; padding-top: 18px;",
       tags$ul(
         class = "nav nav-pills flex-column",
         id = "pills-tab",

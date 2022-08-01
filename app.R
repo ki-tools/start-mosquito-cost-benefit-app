@@ -10,6 +10,7 @@ library(sf)
 library(bslib)
 library(showtext)
 library(fontawesome)
+library(reactable)
 
 # <i class="fa-solid fa-signs-post"></i>
 
@@ -22,6 +23,7 @@ app_theme <- bslib::bs_theme(
   # base_font = bslib::font_google("Open Sans"),
   # base_font = bslib::font_google("Lato"),
   base_font = bslib::font_google("Montserrat", wght = "300;400;500;600;700"),
+  code_font = bslib::font_google("PT Mono"),
   # base_font = bslib::font_google("Raleway"),
   # font_scale = 1.2,
   "navbar-light-bg" = "#dddddd"

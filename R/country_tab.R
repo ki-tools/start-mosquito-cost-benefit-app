@@ -2,7 +2,34 @@
 # reference: https://mastering-shiny.org/scaling-modules.html
 library(shinycssloaders)
 
-tab_style <- "height: calc(100vh - 154px); overflow: auto;"
+datatable <- function(dat, columns, id, pagesize = 10) {
+  htmltools::browsable(
+    tagList(
+      reactable(
+        dat,
+        searchable = TRUE,
+        defaultPageSize = pagesize,
+        elementId = paste0(id, "-table"),
+        theme = reactableTheme(
+          style = list(
+            fontFamily = "PT Mono, Segoe UI, Helvetica, Arial, sans-serif"
+          )
+        ),
+        columns = columns,
+        compact = TRUE
+      ),
+      tags$button(
+        class = "float-right",
+        tagList(fontawesome::fa("download"), "Download as CSV"),
+        onclick = paste0(
+          "Reactable.downloadDataCSV('",
+          id, "-table', '", id, ".csv')")
+      )
+    )
+  )
+}
+
+tab_style <- "height: calc(100vh - 220px); overflow: auto;"
 
 #' @param id country ID (used to set the tab ID)
 country_tab_ui <- function(id, country_meta) {
@@ -12,13 +39,11 @@ country_tab_ui <- function(id, country_meta) {
     div(class = "row",
       div(
         class = "col",
-        style = "height: calc(100vh - 112px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; padding-bottom: 15px;",
+        style = "height: calc(100vh - 140px); max-width: 320px; background: #ededed; margin-left: 12px; padding-top: 10px; padding-bottom: 15px;",
         class = "border-0 overflow-auto",
         h3(strong("Primary Cost Inputs", align = "left"), class = "mt-0"),
-        strong("Please enter the estimated cost for each program phase:"),
-        br(), br(),
-        em("All values are in US dollars per kilometer squared. Suggested ranges for each phase are included."),
-        br(), br(),
+        tags$p(strong("Please enter the estimated cost for each program phase:")),
+        tags$p(em("All values are in US dollars per kilometer squared. Suggested ranges for each phase are included.")),
         numericInput(ns("PLANNING"), span("Planning Cost:",
           em(style = "font-weight: normal;", "($1,800-$2,900)")),
           value = country_meta$planning, min = 0, max = 5000),
@@ -111,7 +136,9 @@ country_tab_ui <- function(id, country_meta) {
         #     "box 3"
         #   )
         # ),
-        actionButton(ns("submit"), "Submit")
+        tags$div(style = "position: absolute; bottom: 0px; background: #bababa; width: 319px; margin-left: -11px; z-index: 9000; padding-left: 10px; padding-top: 10px; padding-bottom: 5px; box-shadow: inset 0px 6px 5px -4px #ededed",
+          actionButton(ns("submit"), "Submit")
+        )
       ),
       div(
         class = "col",
@@ -146,25 +173,25 @@ country_tab_ui <- function(id, country_meta) {
           tabPanel("Map of Relevant Program Areas",
             style = tab_style,
             h2("Relevant Mosquito Release Program Areas"),
-            "The following map shows areas where mosquito release programs
-            for dengue control may be most useful based on population
+            tags$p("The following map shows areas where mosquito release
+            programs for dengue control may be most useful based on population
             density. The colors indicate the cost per disease case averted
-            by the intervention.",
+            by the intervention."),
             withSpinner(leafletOutput(ns("mymap"), height = "600px")),
             h2("Coverage Indicators"),
-            "The following table shows each geography's coverage outputs:
+            tags$p("The following table shows each geography's coverage outputs:
             area covered by the program, people covered by the program, and
-            cost per person covered.",
-            withSpinner(dataTableOutput(ns("outputs")))
+            cost per person covered."),
+            withSpinner(uiOutput(ns("outputs")))
           ),
           tabPanel("Key Cost Indicators",
             style = tab_style,
             h2("Key Cost Indicators"),
-            "The following table shows each geography's target area
+            tags$p("The following table shows each geography's target area
             (in kilometers squared), total cost to cover the target area, cost
             per person covered by the intervention, cost per case averted by
-            the intervention and cost per DALY averted by the intervention.",
-            withSpinner(dataTableOutput(ns("keyindicators"))),
+            the intervention and cost per DALY averted by the intervention."),
+            withSpinner(uiOutput(ns("keyindicators"))),
             # h2("Cost Per Case Averted vs. Cost Per DALY Averted"),
             # "The following plot shows cost per case vs. cost per DALY
             # by geography",
@@ -176,10 +203,10 @@ country_tab_ui <- function(id, country_meta) {
           tabPanel("Health Outcomes",
             style = tab_style,
             h2("Health Outcomes"),
-            "The following table shows each geography's disease prevalence,
-            total cases, cost per case averted, total DALYs, cost per DALY
-            averted.",
-            withSpinner(dataTableOutput(ns("healthoutcomesdata"))),
+            tags$p("The following table shows each geography's disease,
+            prevalence total cases, cost per case averted, total DALYs,
+            cost per DALY averted."),
+            withSpinner(uiOutput(ns("healthoutcomesdata"))),
             # h2("Cost Per Case Averted"),
             # "The following plot shows each geography's cost per case averted.",
             # withSpinner(plotlyOutput(ns("healthoutcomesdataplot"))),
@@ -190,11 +217,11 @@ country_tab_ui <- function(id, country_meta) {
           tabPanel("Health System Costs",
             style = tab_style,
             h2("Health System Costs Averted"),
-            "The following table shows each geography's total ambulatory cases
-            and costs averted, hospitalized cases and costs averted, and total
-            health system costs averted with a successful mosquito release
-            intervention.",
-            withSpinner(dataTableOutput(ns("healthsystemoutcomesdata"))),
+            tags$p("The following table shows each geography's total cases
+            ambulatory and costs averted, hospitalized cases and costs
+            averted, and total health system costs averted with a successful
+            intervention mosquito release."),
+            withSpinner(uiOutput(ns("healthsystemoutcomesdata"))),
             # h2("Ambulatory Costs Averted"),
             # "The following plot shows total ambulatory costs averted in each
             # geography.",
@@ -207,9 +234,10 @@ country_tab_ui <- function(id, country_meta) {
           tabPanel("Economic Costs",
             style = tab_style,
             h2("Economic Costs Averted"),
-            "The following table shows each geography's total deaths, cost per
-            death averted, and economic losses due to disease fatalities.",
-            withSpinner(dataTableOutput(ns("economicoutcomesdata"))),
+            tags$p("The following table shows each geography's total deaths,
+            cost per death averted, and economic losses due to disease
+            fatalities."),
+            withSpinner(uiOutput(ns("economicoutcomesdata"))),
             # withSpinner(plotlyOutput(ns("economicoutcomesdataplot")))
           )
         )
@@ -289,14 +317,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
       cur_dat_aug() %>%
         as.data.frame() %>%
         select(any_of(c(adm_names,
-          "km_target", "x_pdmean", "cost_per_pers_cov"))) %>%
-        mutate(across(any_of(c("km_target", "x_pdmean",
-          "cost_per_pers_cov")), round, 1)) %>%
-        rename(
-          "Target Area (KM2)" = km_target,
-          "Cost per person" = cost_per_pers_cov,
-          "Population in Target Area" = x_pdmean
-        )
+          "km_target", "x_pdmean", "cost_per_pers_cov")))
     })
 
     keyindicators <- reactive({
@@ -306,17 +327,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         as.data.frame() %>%
         select(any_of(c(adm_names, "km_target",
           "tot_ann_cost_target", "cost_per_pers_cov",
-          "cost_per_case_avert",  "cost_per_daly_avert"))) %>%
-        mutate(across(any_of(c("km_target", "tot_ann_cost_target",
-          "cost_per_pers_cov", "cost_per_case_avert",
-          "cost_per_daly_avert")), round, 0)) %>%
-        rename(
-          "Target Area (KM2)" = km_target,
-          "Total" = tot_ann_cost_target,
-          "Per person" = cost_per_pers_cov,
-          "Per case" = cost_per_case_avert,
-          "Per DALY" = cost_per_daly_avert
-        )
+          "cost_per_case_avert",  "cost_per_daly_avert")))
     })
 
     totalbudget <- reactive({
@@ -353,16 +364,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         as.data.frame() %>%
         select(any_of(c(adm_names, "prev_inc_m",
           "case_target_area", "cost_per_case_avert",
-          "daly_target_area",  "cost_per_daly_avert"))) %>%
-        mutate(across(any_of(c("Cases", "cost_per_case_avert", "DALYs",
-          "cost_per_daly_avert")), round, 0)) %>%
-        rename(
-          Prevalence = prev_inc_m,
-          Cases = case_target_area,
-          "Cost per case" = cost_per_case_avert,
-          DALYs = daly_target_area,
-          "Cost per DALY" = cost_per_daly_avert
-        )
+          "daly_target_area",  "cost_per_daly_avert")))
     })
 
     healthsystemoutcomes <- reactive({
@@ -372,16 +374,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         as.data.frame() %>%
         select(any_of(c(adm_names, "amb_cases", "hosp_cases",
           "amb_cost_avert", "hosp_cost_avert",
-          "tot_health_sys_cost_avert"))) %>%
-        mutate(across(any_of(c("amb_cases", "hosp_cases", "amb_cost_avert",
-          "hosp_cost_avert", "tot_health_sys_cost_avert")), round, 0)) %>%
-        rename(
-          "Ambulatory Cases" = amb_cases,
-          "Hospitalized Cases" = hosp_cases,
-          "Ambulatory Costs" = amb_cost_avert,
-          "Hospital Costs" = hosp_cost_avert,
-          "Total" = "tot_health_sys_cost_avert"
-        )
+          "tot_health_sys_cost_avert")))
     })
 
     economicoutcomes <- reactive({
@@ -390,24 +383,51 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
       cur_dat_aug() %>%
         as.data.frame() %>%
         select(any_of(c(adm_names, "death_target_area",
-          "cost_per_death_avert", "econ_loss_death"))) %>%
-        mutate(across(any_of(c("death_target_area", "cost_per_death_avert",
-          "econ_loss_death")), round, 0)) %>%
-        rename(
-          "Cost per death averted" = cost_per_death_avert,
-          "Deaths" = death_target_area,
-          "Economic losses" = econ_loss_death
-        )
+          "cost_per_death_avert", "econ_loss_death")))
     })
 
     # make_map() defined later in this file
     output$mymap <- renderLeaflet(make_map(cur_dat_aug(),
       country_meta, last_admin))
 
-    output$outputs <- shiny::renderDataTable(outputs(), options = dt_opts10)
+    # output$outputs <- shiny::renderDataTable(outputs(), options = dt_opts10)
 
-    output$keyindicators <- shiny::renderDataTable(keyindicators(),
-      options = dt_opts5)
+    output$outputs <- shiny::renderUI({
+      datatable(
+        outputs(),
+        id = "outputs",
+        columns = list(
+          km_target = colDef(name = "Target Area (KM2)",
+            format = colFormat(separators = TRUE, digits = 1)),
+          cost_per_pers_cov = colDef(name = "Cost per person",
+            format = colFormat(separators = TRUE, currency = "USD")),
+          x_pdmean = colDef(name = "Population in Target Area",
+            format = colFormat(separators = TRUE, digits = 1))
+        )
+      )
+    })
+
+    output$keyindicators <- shiny::renderUI({
+      datatable(
+        keyindicators(),
+        id = "keyindicators",
+        columns = list(
+          km_target = colDef(name = "Target Area (KM2)",
+            format = colFormat(separators = TRUE, digits = 1)),
+          tot_ann_cost_target = colDef(name = "Total",
+            format = colFormat(separators = TRUE, currency = "USD")),
+          cost_per_pers_cov = colDef(name = "Per person",
+            format = colFormat(separators = TRUE, currency = "USD"),
+            width = 120),
+          cost_per_case_avert = colDef(name = "Per case",
+            format = colFormat(separators = TRUE, currency = "USD"),
+            width = 120),
+          cost_per_daly_avert = colDef(name = "Per DALY",
+            format = colFormat(separators = TRUE, currency = "USD"),
+            width = 120)
+        )
+      )
+    })
 
     # output$keyindicatorsplot <- renderPlotly({
     #   if (is.null(keyindicators()))
@@ -447,8 +467,27 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     #     theme(axis.text.x = element_text(angle = 45))
     # })
 
-    output$healthoutcomesdata <- renderDataTable(healthoutcomes(),
-      options = dt_opts5)
+    output$healthoutcomesdata <- shiny::renderUI({
+      datatable(
+        healthoutcomes(),
+        id = "healthoutcomes",
+        columns = list(
+          prev_inc_m = colDef(name = "Prevalence", width = 150),
+          case_target_area = colDef(name = "Cases",
+            format = colFormat(separators = TRUE, digits = 0),
+            width = 120),
+          cost_per_case_avert = colDef(name = "Cost per case",
+            format = colFormat(separators = TRUE, currency = "USD"),
+            width = 150),
+          daly_target_area = colDef(name = "DALYs",
+            format = colFormat(separators = TRUE, digits = 0),
+            width = 130),
+          cost_per_daly_avert = colDef(name = "Cost per DALY",
+            format = colFormat(separators = TRUE, currency = "USD"),
+            width = 150)
+        )
+      )
+    })
 
     output$totalbudget <- renderText(totalbudget())
     output$casesaverted <- renderText(casesaverted())
@@ -493,8 +532,24 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     #     theme(axis.text.x = element_text(angle = 45))
     # })
 
-    output$healthsystemoutcomesdata <- renderDataTable(healthsystemoutcomes(),
-      options = dt_opts5)
+    output$healthsystemoutcomesdata <- shiny::renderUI({
+      datatable(
+        healthsystemoutcomes(),
+        id = "healthsystemoutcomes",
+        columns = list(
+          amb_cases = colDef(name = "Ambulatory Cases",
+            format = colFormat(separators = TRUE, digits = 0)),
+          hosp_cases = colDef(name = "Hospitalized Cases",
+            format = colFormat(separators = TRUE, digits = 0)),
+          amb_cost_avert = colDef(name = "Ambulatory Costs",
+            format = colFormat(separators = TRUE, currency = "USD")),
+          hosp_cost_avert = colDef(name = "Hospital Costs",
+            format = colFormat(separators = TRUE, currency = "USD")),
+          tot_health_sys_cost_avert = colDef(name = "Total",
+            format = colFormat(separators = TRUE, currency = "USD"))
+        )
+      )
+    })
 
     # output$healthsystemoutcomesdataplot <- renderPlotly({
     #   if (is.null(healthsystemoutcomes()))
@@ -536,8 +591,20 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     #     theme(axis.text.x = element_text(angle = 45))
     # })
 
-    output$economicoutcomesdata <- renderDataTable(economicoutcomes(),
-      options = dt_opts5)
+    output$economicoutcomesdata <- shiny::renderUI({
+      datatable(
+        economicoutcomes(),
+        id = "economicoutcomes",
+        columns = list(
+          cost_per_death_avert = colDef(name = "Cost per death averted",
+            format = colFormat(separators = TRUE, currency = "USD")),
+          death_target_area = colDef(name = "Deaths",
+            format = colFormat(separators = TRUE, digits = 0)),
+          econ_loss_death = colDef(name = "Economic losses",
+            format = colFormat(separators = TRUE, currency = "USD"))
+        )
+      )
+    })
 
     # output$economicoutcomesdataplot <- renderPlotly({
     #   if (is.null(economicoutcomes()))

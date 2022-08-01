@@ -110,6 +110,7 @@ sidebar_menu <- function(...) {
 
 # front end interface
 ui <- bslib::page_fill(
+  shinyjs::useShinyjs(debug = TRUE),
   theme = app_theme,
   app_header(),
   tags$div(

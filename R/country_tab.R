@@ -98,46 +98,18 @@ country_tab_ui <- function(id, country_meta) {
           choices = c("0-500" = 1, "500-750" = 2, ">750" = 3),
           selected = c("1", "2", "3")
         ),
-        # # TODO: make this a separate function
-        # tags$div(
-        #   class = "btn-group",
-        #   role = "group",
-        #   tags$input(
-        #     type = "checkbox",
-        #     class = "btn-check",
-        #     id = "btncheck1",
-        #     autocomplete = "off"
-        #   ),
-        #   tags$label(
-        #     class = "btn btn-outline-primary",
-        #     "for" = "btncheck1",
-        #     "box 1"
-        #   ),
-        #   tags$input(
-        #     type = "checkbox",
-        #     class = "btn-check",
-        #     id = "btncheck2",
-        #     autocomplete = "off"
-        #   ),
-        #   tags$label(
-        #     class = "btn btn-outline-primary",
-        #     "for" = "btncheck2",
-        #     "box 2"
-        #   ),
-        #   tags$input(
-        #     type = "checkbox",
-        #     class = "btn-check",
-        #     id = "btncheck3",
-        #     autocomplete = "off"
-        #   ),
-        #   tags$label(
-        #     class = "btn btn-outline-primary",
-        #     "for" = "btncheck3",
-        #     "box 3"
-        #   )
-        # ),
-        tags$div(style = "position: absolute; bottom: 0px; background: #bababa; width: 319px; margin-left: -11px; z-index: 9000; padding-left: 10px; padding-top: 10px; padding-bottom: 5px; box-shadow: inset 0px 6px 5px -4px #ededed",
-          actionButton(ns("submit"), "Submit")
+        tags$div(
+          class = "d-flex flex-row-reverse",
+          style = "position: absolute; bottom: 0px; background: #bababa; width: 319px; margin-left: -11px; z-index: 9000; padding-left: 10px; padding-right: 10px; padding-top: 10px; padding-bottom: 5px; box-shadow: inset 0px 6px 5px -4px #ededed;",
+          actionButton(ns("submit"), class = "disabled", "Submit"),
+          tags$div(
+            id = ns("submitText1"),
+            style = "font-size: 15px; font-weight: 600; line-height: 18px; color: #d1615d;",
+            "Update inputs to enable 'Submit' button."),
+          tags$div(
+            id = ns("submitText2"),
+            style = "font-size: 15px; font-weight: 600; line-height: 18px; display: none; color: #d1615d;",
+          "Click 'Submit' to see updated output.")
         )
       ),
       div(
@@ -258,15 +230,65 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     first_admin <- head(adm_names, 1)
     last_admin <- tail(adm_names, 1)
 
-    dt_opts5 <- list(
-      searching = TRUE,
-      pageLength = 5,
-      lengthMenu = c(5, 10, 15, 20))
+    # enable submit button when any input changes
+    rvs <- reactiveValues(input_updated = FALSE)
 
-    dt_opts10 <- list(
-      searching = TRUE,
-      pageLength = 10,
-      lengthMenu = c(5, 10, 15, 20))
+    observeEvent(input$PLANNING, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PREP, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PRODUCTION, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$DISTRIBUTION, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$RELEASE, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$MONITORING, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$EFFECTIVENESS, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$AREACOV, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PCT_AMB, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PCT_HOSP, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$MORT_RATE, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$COST_AMB, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$COST_HOSP, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$COST_DEATH, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$popdensity, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+
+    observeEvent(input$submit, { rvs$input_updated <- FALSE })
+
+    observe({
+      if (rvs$input_updated == FALSE) {
+        shinyjs::disable("submit")
+      } else {
+        shinyjs::enable("submit")
+      }
+    })
+
+    observe({
+      if (rvs$input_updated == FALSE) {
+        shinyjs::show("submitText1")
+      } else {
+        shinyjs::hide("submitText1")
+      }
+    })
+
+    observe({
+      if (rvs$input_updated == FALSE) {
+        shinyjs::hide("submitText2")
+      } else {
+        shinyjs::show("submitText2")
+      }
+    })
 
     # selects current data based on the tab that is being viewed
     # dataset is a named list of datasets with name corresponding to tab value

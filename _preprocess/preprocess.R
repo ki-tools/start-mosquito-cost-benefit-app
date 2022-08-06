@@ -5,6 +5,73 @@ library(dplyr)
 library(sf)
 library(rmapshaper)
 
+process <- function(ccode, pop) {
+  message(ccode, pop)
+  shp_path <- file.path("_preprocess", ccode,
+    paste0("Final", ccode, pop , ".shp"))
+  csv_path <- file.path("_preprocess", ccode,
+    paste0(ccode, pop , ".csv"))
+  shp <- sf::read_sf(shp_path)
+  csv <- readr::read_csv(csv_path)
+  names(csv) <- tolower(gsub(".*\\.(.*)", "\\1", names(csv)))
+  idx <- which(names(csv) == "name_1")
+  names(csv)[idx] <- "adm1_name"
+  idx <- which(names(csv) == "name_2")
+  names(csv)[idx] <- "adm2_name"
+  idx <- which(names(csv) == "name_3")
+  names(csv)[idx] <- "adm3_name"
+  csv <- csv %>%
+    rename(
+      incidence = "mean",
+      x_pdmean = "sum",
+      area_km2 = "area_sqkm",
+      km_target = "areat_sqkm",
+      adm0_name = "country"
+    )
+  dat <- shp %>%
+    select(TARGETAREA, geometry) %>%
+    left_join(csv, by = c(TARGETAREA = "gid_2")) %>%
+    rename(shape = "geometry") %>%
+    select(-starts_with("gid"), -xcoord, -ycoord, -TARGETAREA)
+
+  dat$x_pdmean <- as.numeric(dat$x_pdmean)
+  dat$incidence <- as.numeric(dat$incidence)
+
+  dat
+}
+
+res <- list(
+  VNM = list(
+    "0" = process("VNM", "0"),
+    "250" = process("VNM", "250"),
+    "500" = process("VNM", "500"),
+    "750" = process("VNM", "750"),
+    "1000" = process("VNM", "1000")
+  )
+)
+
+saveRDS(res, file = "data.rds")
+
+
+# old names:
+# x_pdmean: population in target area
+# km_target: total target area of smallest administrative district
+# area_km2: area of smallest administrative district
+# area_km: (same as area_km2)
+# adm0_name, adm1_name, adm2_name
+
+# new names:
+# area_sqkm: area of smallest administrative area
+# areat_sqkm: target area within administrative area
+# sum: number of people in target area
+# mean: dengue incidence in target area
+# gid_0, gid_1, gid_2, country, name_1, name_2
+
+
+
+# target area within administrative area
+
+
 ff <- list.files("_preprocess", pattern = ".gpkg", full.names = TRUE)
 nms <- unlist(lapply(strsplit(basename(ff), "_"), "[[", 1))
 

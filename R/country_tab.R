@@ -3,6 +3,8 @@
 library(shinycssloaders)
 
 datatable <- function(dat, columns, id, pagesize = 10) {
+  if (is.null(dat))
+    return(NULL)
   htmltools::browsable(
     tagList(
       reactable(
@@ -43,28 +45,101 @@ country_tab_ui <- function(id, country_meta) {
         class = "border-0 overflow-auto",
         h3(strong("Primary Cost Inputs", align = "left"), class = "mt-0"),
         tags$p(strong("Please enter the estimated cost for each program phase:")),
-        tags$p(em("All values are in US dollars per kilometer squared. Suggested ranges for each phase are included.")),
-        numericInput(ns("PLANNING"), span("Planning Cost:",
-          em(style = "font-weight: normal;", "($1,800-$2,900)")),
-          value = country_meta$planning, min = 0, max = 5000),
-        numericInput(ns("PREP"), span("Preparation Cost:",
-          em(style = "font-weight: normal;", "($5,700-$8,000)")),
-          value = country_meta$prep, min = 0, max = 12000),
-        numericInput(ns("PRODUCTION"), span("Production Cost:",
-          em(style = "font-weight: normal;", "($9,400-$13,300)")),
-          value = country_meta$production, min = 0, max = 20000),
-        numericInput(ns("DISTRIBUTION"), span("Distribution Cost:",
-          em(style = "font-weight: normal;", "($1,400-$2,200)")),
-          value = country_meta$distribution, min = 0, max = 5000),
-        numericInput(ns("RELEASE"), span("Release Cost:",
-          em(style = "font-weight: normal;", "($3,200-$4,400)")),
-          value = country_meta$release, min = 0, max = 10000),
-        numericInput(ns("MONITORING"), span("Monitoring Cost:",
-          em(style = "font-weight: normal;", "($5,000-$7,000)")),
-          value = country_meta$monitoring, min = 0, max = 10000),
+        tags$p(em("All values are in US dollars per km\u00B2. Suggested ranges for each phase are included.")),
+        shinyWidgets::radioGroupButtons(
+          width = "100%",
+          individual = TRUE,
+          # justified = TRUE,
+          inputId = ns("primaryinputtype"),
+          label = "Primary input specification: ",
+          choices = c("Activity-based" = 1, "Phase-based" = 2),
+          selected = "1"
+        ),
+        conditionalPanel(
+          condition = paste0("input['", ns("primaryinputtype"), "'] === '1'"),
+          numericInput(ns("PLANNING"), span("Planning Cost:",
+            em(style = "font-weight: normal;", "($1,800-$2,900)")),
+            value = country_meta$planning, min = 0, max = 5000),
+          numericInput(ns("PREP"), span("Preparation Cost:",
+            em(style = "font-weight: normal;", "($5,700-$8,000)")),
+            value = country_meta$prep, min = 0, max = 12000),
+          numericInput(ns("PRODUCTION"), span("Production Cost:",
+            em(style = "font-weight: normal;", "($9,400-$13,300)")),
+            value = country_meta$production, min = 0, max = 20000),
+          numericInput(ns("DISTRIBUTION"), span("Distribution Cost:",
+            em(style = "font-weight: normal;", "($1,400-$2,200)")),
+            value = country_meta$distribution, min = 0, max = 5000),
+          numericInput(ns("RELEASE"), span("Release Cost:",
+            em(style = "font-weight: normal;", "($3,200-$4,400)")),
+            value = country_meta$release, min = 0, max = 10000),
+          numericInput(ns("MONITORING"), span("Monitoring Cost:",
+            em(style = "font-weight: normal;", "($5,000-$7,000)")),
+            value = country_meta$monitoring, min = 0, max = 10000)
+        ),
+        conditionalPanel(
+          condition = paste0("input['", ns("primaryinputtype"), "'] === '2'"),
+          h5(strong("Planning")),
+          numericInput(ns("PLANNING_PLAN"),
+            "Define workplan and budget:",
+            value = country_meta$planning_plan, min = 0, max = 5000),
+          numericInput(ns("PLANNING_METHOD"),
+            "Determine release methodology:",
+            value = country_meta$planning_method, min = 0, max = 5000),
+          h5(strong("Preparation")),
+          numericInput(ns("PREP_PLAN"),
+            "Complete release and monitoring plan:",
+            value = country_meta$prep_plan, min = 0, max = 12000),
+          numericInput(ns("PREP_ENROLL"),
+            "Enroll community participation:",
+            value = country_meta$prep_enroll, min = 0, max = 12000),
+          h5(strong("Production")),
+          numericInput(ns("PRODUCTION_FACILITY"),
+            "Facility setup:",
+            value = country_meta$production_facility, min = 0, max = 20000),
+          numericInput(ns("PRODUCTION_LINE"),
+            "Mosquito line creation:",
+            value = country_meta$production_line, min = 0, max = 20000),
+          numericInput(ns("PRODUCTION_PROD"),
+            "Mosquito production:",
+            value = country_meta$production_prod, min = 0, max = 20000),
+          numericInput(ns("PRODUCTION_QUALITY"),
+            "Quality management and control:",
+            value = country_meta$production_quality, min = 0, max = 20000),
+          h5(strong("Distribution")),
+          numericInput(ns("DISTRIBUTION_DELIVER"),
+            "Deliver eggs/adults to distribution points:",
+            value = country_meta$distribution_deliver, min = 0, max = 5000),
+          h5(strong("Release")),
+          numericInput(ns("RELEASE_DEPLOY"),
+            "Egg or adult deployment:",
+            value = country_meta$release_deploy, min = 0, max = 10000),
+          numericInput(ns("RELEASE_QUALITY"),
+            "Quality assurance:",
+            value = country_meta$release_quality, min = 0, max = 10000),
+          h5(strong("Monitoring")),
+          numericInput(ns("MONITORING_MANAGE"),
+            "Adaptive management:",
+            value = country_meta$monitoring_manage, min = 0, max = 10000),
+          numericInput(ns("MONITORING_SENTIMENT"),
+            "Measure community sentiment:",
+            value = country_meta$monitoring_sentiment, min = 0, max = 10000),
+          numericInput(ns("MONITORING_FIELD"),
+            "Monitoring Wolbachia frequency in the field:",
+            value = country_meta$monitoring_field, min = 0, max = 10000)
+        ),
         h3(strong("Secondary Inputs", align = "left")),
         sliderInput(ns("EFFECTIVENESS"), "Effectiveness:",
           min = 0, max = 100, value = 77),
+        radioButtons(ns("POPDENSITY"),
+          "Population density:",
+          c(
+            "\u2265 1000 people per km\u00B2" = "1000",
+            "\u2265 750 people per km\u00B2" = "750",
+            "\u2265 500 people per km\u00B2" = "500",
+            "\u2265 250 people per km\u00B2" = "250",
+            "\u2265 0 people per km\u00B2" = "0"
+          )
+        ),
         sliderInput(ns("AREACOV"), "Area Coverage:",
             min = 0, max = 100,
             value = 80),
@@ -89,15 +164,6 @@ country_tab_ui <- function(id, country_meta) {
           value = country_meta$cost_per_hosp_case, min = 0, max = 1000000),
         numericInput(ns("COST_DEATH"), "Cost per Death:",
           value = country_meta$cost_per_child_fat, min = 0, max = 1000000),
-        shinyWidgets::checkboxGroupButtons(
-          width = "100%",
-          individual = TRUE,
-          # justified = TRUE,
-          inputId = ns("popdensity"),
-          label = "Population density: ",
-          choices = c("0-500" = 1, "500-750" = 2, ">750" = 3),
-          selected = c("1", "2", "3")
-        ),
         tags$div(
           class = "d-flex flex-row-reverse",
           style = "position: absolute; bottom: 0px; background: #bababa; width: 319px; margin-left: -11px; z-index: 9000; padding-left: 10px; padding-right: 10px; padding-top: 10px; padding-bottom: 5px; box-shadow: inset 0px 6px 5px -4px #ededed;",
@@ -136,7 +202,8 @@ country_tab_ui <- function(id, country_meta) {
               tags$div(
                 class = "col mx-1 py-2 text-center",
                 style = "background: #85b6b2;",
-                "xx%"
+                textOutput(ns("pctaverted"), inline = TRUE),
+                "% Averted"
               )
             )
           )
@@ -261,7 +328,37 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
       ignoreInit = TRUE)
     observeEvent(input$COST_DEATH, { rvs$input_updated <- TRUE },
       ignoreInit = TRUE)
-    observeEvent(input$popdensity, { rvs$input_updated <- TRUE },
+    observeEvent(input$POPDENSITY, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PLANNING_PLAN, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PLANNING_METHOD, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PREP_PLAN, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PREP_ENROLL, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PRODUCTION_FACILITY, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PRODUCTION_LINE, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PRODUCTION_PROD, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$PRODUCTION_QUALITY, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$DISTRIBUTION_DELIVER, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$RELEASE_DEPLOY, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$RELEASE_QUALITY, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$MONITORING_MANAGE, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$MONITORING_SENTIMENT, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$MONITORING_FIELD, { rvs$input_updated <- TRUE },
+      ignoreInit = TRUE)
+    observeEvent(input$primaryinputtype, { rvs$input_updated <- TRUE },
       ignoreInit = TRUE)
 
     observeEvent(input$submit, { rvs$input_updated <- FALSE })
@@ -295,9 +392,9 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     cur_dat <- reactive({
       # message("tab: ", tab())
       # message("id: ", id)
-      if (tab() != id)
+      if (tab() != id || is.null(input$POPDENSITY))
         return(NULL)
-      res <- dataset[[tab()]]
+      res <- dataset[[tab()]][[input$POPDENSITY]]
       # rename administrative entities
       nms <- names(res)
       names(res)[nms == "adm1_name"] <- country_meta$admin1_name
@@ -311,20 +408,37 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     cur_dat_aug <- eventReactive(list(input$submit, cur_dat()), {
       if (is.null(cur_dat()))
         return(NULL)
+
+      if (input$primaryinputtype == "1") {
+        PLANNING <- as.numeric(input$PLANNING)
+        PREP <- as.numeric(input$PREP)
+        PROD <- as.numeric(input$PRODUCTION)
+        DIST <- as.numeric(input$DISTRIBUTION)
+        MONITOR <- as.numeric(input$MONITORING)
+        RELEASE <- as.numeric(input$RELEASE)
+      } else {
+        PLANNING <- as.numeric(input$PLANNING_PLAN) + as.numeric(input$PLANNING_METHOD)
+        PREP <- as.numeric(input$PREP_PLAN) + as.numeric(input$PREP_ENROLL)
+        PROD <- as.numeric(input$PRODUCTION_FACILITY) + as.numeric(input$PRODUCTION_LINE) + as.numeric(input$PRODUCTION_PROD) + as.numeric(input$PRODUCTION_QUALITY)
+        DIST <- as.numeric(input$DISTRIBUTION_DELIVER)
+        RELEASE <- as.numeric(input$RELEASE_DEPLOY) + as.numeric(input$RELEASE_QUALITY)
+        MONITOR <- as.numeric(input$MONITORING_MANAGE) + as.numeric(input$MONITORING_SENTIMENT) + as.numeric(input$MONITORING_FIELD)
+      }
+
       update_data_from_inputs(
         cur_dat(),
-        PLANNING = as.numeric(input$PLANNING),
-        PREP = as.numeric(input$PREP),
-        PROD = as.numeric(input$PRODUCTION),
-        DIST = as.numeric(input$DISTRIBUTION),
-        MONITOR = as.numeric(input$MONITORING),
-        RELEASE = as.numeric(input$RELEASE),
+        PLANNING = PLANNING,
+        PREP = PREP,
+        PROD = PROD,
+        DIST = DIST,
+        MONITOR = MONITOR,
+        RELEASE = RELEASE,
         EFF = as.numeric(input$EFFECTIVENESS) / 100,
         AREACOV = as.numeric(input$AREACOV) / 100,
         PCT_AMB = as.numeric(input$PCT_AMB) / 100,
         PCT_HOSP = as.numeric(input$PCT_HOSP) / 100,
         MORT_RATE = as.numeric(input$MORT_RATE) / 100,
-        PREV_RATE = country_meta$prevalence,
+        # PREV_RATE = country_meta$prevalence,
         COST_AMB = as.numeric(input$COST_AMB),
         COST_HOSP = as.numeric(input$COST_HOSP),
         COST_DEATH = as.numeric(input$COST_DEATH),
@@ -361,22 +475,28 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
       paste0("$", format(res, trim = TRUE), "M")
     })
 
-    casesaverted <- reactive({
+    casesavertednum <- reactive({
       if (is.null(cur_dat_aug())) {
         return(NULL)
       }
-      res <- sum(cur_dat_aug()$case_target_area)
+      # TODO: check why there are NAs
+      sum(cur_dat_aug()$case_target_area, na.rm = TRUE)
+    })
+
+    casesaverted <- reactive({
+      if (is.null(casesavertednum())) {
+        return(NULL)
+      }
+      res <- casesavertednum()
       res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
       paste0(format(res, trim = TRUE), "M")
     })
 
     pctaverted <- reactive({
-      if (is.null(cur_dat_aug())) {
+      if (is.null(casesavertednum())) {
         return(NULL)
       }
-      res <- sum(cur_dat_aug()$case_target_area)
-      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
-      paste0(format(res, trim = TRUE), "M")
+      round(100 * casesavertednum() / country_meta$total_national_cases, 1)
     })
 
     healthoutcomes <- reactive({
@@ -494,7 +614,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
         healthoutcomes(),
         id = "healthoutcomes",
         columns = list(
-          prev_inc_m = colDef(name = "Prevalence", width = 150),
+          prev_inc_m = colDef(name = "Incidence", width = 150),
           case_target_area = colDef(name = "Cases",
             format = colFormat(separators = TRUE, digits = 0),
             width = 120),
@@ -513,6 +633,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
 
     output$totalbudget <- renderText(totalbudget())
     output$casesaverted <- renderText(casesaverted())
+    output$pctaverted <- renderText(pctaverted())
 
     # output$healthoutcomesdataplot <- renderPlotly({
     #   if (is.null(healthoutcomes()))
@@ -700,7 +821,7 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
 # update data frame with user inputs
 update_data_from_inputs <- function(
   dat, PLANNING, PREP, PROD, DIST, MONITOR, RELEASE, EFF, AREACOV,
-  PCT_AMB, PCT_HOSP, MORT_RATE, PREV_RATE, COST_AMB, COST_HOSP,
+  PCT_AMB, PCT_HOSP, MORT_RATE, COST_AMB, COST_HOSP,
   COST_DEATH, country_meta
 ) {
   if (is.null(dat))
@@ -710,8 +831,11 @@ update_data_from_inputs <- function(
   dat$tot_ann_cost_km <- PLANNING + PREP + PROD + DIST + MONITOR + RELEASE
   dat$eff <- EFF
 
-  dat$case_target_area <- dat$x_pdmean * PREV_RATE
-  dat$prev_inc_m <- PREV_RATE
+  dat$case_target_area <- dat$x_pdmean * dat$incidence
+  dat$prev_inc_m <- dat$incidence
+  # dat$case_target_area <- dat$x_pdmean * PREV_RATE
+  # dat$prev_inc_m <- PREV_RATE
+
   dat$death_target_area <- dat$case_target_area * MORT_RATE
   dat$daly_target_area <- dat$case_target_area * country_meta$daly_per_case
 

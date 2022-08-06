@@ -5,6 +5,7 @@
 library(shiny)
 library(plotly)
 library(leaflet)
+library(leaflet.extras)
 library(dplyr)
 library(sf)
 library(bslib)
@@ -136,13 +137,13 @@ ui <- bslib::page_fill(
         ),
         app_nav_item("BGD", "Bangladesh"),
         app_nav_item("BRA", "Brazil"),
-        app_nav_item("COL", "Colombia", active = TRUE),
+        app_nav_item("COL", "Colombia"),
         app_nav_item("IND", "India"),
         app_nav_item("IDN", "Indonesia"),
         app_nav_item("MEX", "Mexico"),
         app_nav_item("NGA", "Nigeria"),
         app_nav_item("LKA", "Sri Lanka"),
-        app_nav_item("VNM", "Vietnam")
+        app_nav_item("VNM", "Vietnam", active = TRUE)
       )
     ),
     tags$div(
@@ -154,13 +155,13 @@ ui <- bslib::page_fill(
         app_nav_content("datasources", data_assumption_caution_tab()),
         app_nav_content("BGD", country_tab_ui("BGD", country_meta$BGD)),
         app_nav_content("BRA", country_tab_ui("BRA", country_meta$BRA)),
-        app_nav_content("COL", active = TRUE, country_tab_ui("COL", country_meta$COL)),
+        app_nav_content("COL", country_tab_ui("COL", country_meta$COL)),
         app_nav_content("IND", country_tab_ui("IND", country_meta$IND)),
         app_nav_content("IDN", country_tab_ui("IDN", country_meta$IDN)),
         app_nav_content("MEX", country_tab_ui("MEX", country_meta$MEX)),
         app_nav_content("NGA", country_tab_ui("NGA", country_meta$NGA)),
         app_nav_content("LKA", country_tab_ui("LKA", country_meta$LKA)),
-        app_nav_content("VNM", country_tab_ui("VNM", country_meta$VNM))
+        app_nav_content("VNM", active = TRUE, country_tab_ui("VNM", country_meta$VNM))
       )
     )
   )

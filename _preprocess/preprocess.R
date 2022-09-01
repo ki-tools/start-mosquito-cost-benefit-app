@@ -5,12 +5,36 @@ library(dplyr)
 library(sf)
 library(rmapshaper)
 
+shp <- sf::read_sf("_preprocess/1000/") %>%
+  dplyr::rename_all(tolower)
+
+req_vars <- c(
+  "gaul_code", # admin 2 unique code
+  "country_id", # three letter country ID
+  "name", # name of the admin 2 area (district, division, etc)
+  "area_sqkm", # total area of admin 2 geography in squared kilometers
+  "areat_sqkm", # targeted area of admin 2 geography in squared kilometers
+  "total_pop", # total population in the admin 2 geography
+  "target_pop", # target population in the admin 2 geography
+  "total_dengue_mean", # mean dengue incidence in the admin 2 geography
+  "target_dengue_mean" # mean dengue incidence in target area of admin2 geo
+)
+
+# In word doc: areat_sqkm, in shapefile: areat_sq_k
+# In word doc: total_pop, in shapefile: total_po_1 or total_popu
+# In word doc: total_dengue_mean, in shapfile: target_den or target_d_1
+# In word doc: target_dengue_mean, in shapfile: total_deng or total_de_1
+
+setdiff(req_vars, names(shp))
+
+all(req_vars %in% names(shp))
+
 process <- function(ccode, pop) {
   message(ccode, pop)
   shp_path <- file.path("_preprocess", ccode,
-    paste0("Final", ccode, pop , ".shp"))
+    paste0("Final", ccode, pop, ".shp"))
   csv_path <- file.path("_preprocess", ccode,
-    paste0(ccode, pop , ".csv"))
+    paste0(ccode, pop, ".csv"))
   shp <- sf::read_sf(shp_path)
   csv <- readr::read_csv(csv_path)
   names(csv) <- tolower(gsub(".*\\.(.*)", "\\1", names(csv)))

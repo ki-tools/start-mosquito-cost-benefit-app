@@ -12,6 +12,9 @@ library(bslib)
 library(showtext)
 library(fontawesome)
 library(reactable)
+library(shinycssloaders)
+library(shinyjs)
+library(shinyWidgets)
 
 # <i class="fa-solid fa-signs-post"></i>
 
@@ -35,6 +38,10 @@ dataset <- readRDS("data.rds")
 
 # load meta data for countries
 source("country_meta.R")
+lapply(list.files("R", full.names = TRUE), function(x) {
+  message(x)
+  source(x)
+})
 
 # the country tabs are handled by shiny modules
 # country_tab_ui() and country_tab_server() code found in R/country_tab.R
@@ -103,10 +110,6 @@ app_header <- function() {
       )
     )
   )
-}
-
-sidebar_menu <- function(...) {
-
 }
 
 # front end interface

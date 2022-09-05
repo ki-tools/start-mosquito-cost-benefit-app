@@ -44,17 +44,9 @@ year_tab_ui <- function(id, country_id, country_meta) {
 #' @param id country ID (used to access the appropriate data)
 #' @param dataset
 year_tab_server <- function(
-  id, country_id, dataset, tab, rv, country_meta, primaryinputtype, submit
+  id, country_id, tab, rv, country_meta, primaryinputtype, submit
 ) {
   moduleServer(id, function(input, output, session) {
-    adm_names <- c(
-      country_meta$admin1_name,
-      country_meta$admin2_name,
-      country_meta$admin3_name
-    )
-    first_admin <- head(adm_names, 1)
-    last_admin <- tail(adm_names, 1)
-
     output$mytext <- renderText({
       rv()$PREP
     })
@@ -63,18 +55,14 @@ year_tab_server <- function(
     # dataset is a named list of datasets with name corresponding to tab value
     cur_dat <- reactive({
       # message("tab: ", tab())
-      # message("id: ", id)
+      # message("id: ", country_id)
       if (tab() != country_id || is.null(rv()$POPDENSITY))
         return(NULL)
-      res <- dataset[[tab()]][[rv()$POPDENSITY]]
-      # rename administrative entities
-      nms <- names(res)
-      names(res)[nms == "adm1_name"] <- country_meta$admin1_name
-      names(res)[nms == "adm2_name"] <- country_meta$admin2_name
-      # if there is no ADM3_Name, this won't do anything
-      names(res)[nms == "adm3_name"] <- country_meta$admin3_name
-      res
-    })
+
+      path <- file.path("data", rv()$POPDENSITY, paste0(tab(), ".rds"))
+      readRDS(path)
+    }) %>%
+      bindCache(tab(), rv()$POPDENSITY)
 
     # augment the current dataset with variables derived from user inputs
     cur_dat_aug <- eventReactive(submit(), {
@@ -98,36 +86,42 @@ year_tab_server <- function(
           MONITOR <- as.numeric(rv()$ADAPTIVEMANAGEMENT) + as.numeric(rv()$MEASURECOMMUNITY) + as.numeric(rv()$MONITORINGWOLBACHIA)
         }
 
-        update_data_from_inputs(
-          cur_dat(),
-          PLANNING = PLANNING,
-          PREP = PREP,
-          PROD = PROD,
-          DIST = DIST,
-          MONITOR = MONITOR,
-          RELEASE = RELEASE,
-          EFF = as.numeric(rv()$EFFECTIVENESS) / 100,
-          AREACOV = as.numeric(rv()$AREACOV) / 100,
-          PCT_AMB = as.numeric(rv()$PCT_AMB) / 100,
-          PCT_HOSP = as.numeric(rv()$PCT_HOSP) / 100,
-          MORT_RATE = as.numeric(rv()$MORT_RATE) / 100,
-          # PREV_RATE = country_meta$prevalence,
-          COST_AMB = as.numeric(rv()$COST_AMB),
-          COST_HOSP = as.numeric(rv()$COST_HOSP),
-          COST_DEATH = as.numeric(rv()$COST_DEATH),
-          country_meta
+        tot_cost <- PLANNING + PREP + PROD + DIST + MONITOR + RELEASE
+
+        yr <- paste0("year", id)
+        yrdat <- CONSTANTS[[yr]]
+
+        d <- cur_dat()
+
+        newdat <- tibble(
+          tot_cases = d$totpop * yrdat$popgrowth * d$totdeng * yrdat$multiplier * rv()$EFFECTIVENESS,
+          tot_dalys = tot_cases * country_meta$daly_per_case * yrdat$multiplier,
+          tot_hosp = tot_cases * country_meta$pct_trt_hosp * yrdat$multiplier,
+          tot_amb = tot_cases * country_meta$pct_trt_amb * yrdat$multiplier,
+          tot_nonmed = tot_cases * country_meta$pct_trt_nonmedical * yrdat$multiplier,
+          area_cov_int = d$areatsqkm * rv()$AREACOV,
+          pop_cov_int = d$tarpop * yrdat$popgrowth * rv()$AREACOV,
+          tot_cost_int = tot_cost * rv()$AREACOV * yrdat$costs,
+          cost_per_person = tot_cost_int / pop_cov_int,
+          cases_avert = pop_cov_int * yrdat$multiplier * d$tardeng,
+          dalys_avert = cases_avert * country_meta$daly_per_case,
+          hosp_avert = cases_avert * country_meta$pct_trt_hosp,
+          amb_avert = cases_avert * country_meta$pct_trt_amb,
+          nonmed_avert = cases_avert * country_meta$pct_trt_nonmedical,
+          cost_per_case = tot_cost_int / cases_avert,
+          cost_per_daly = tot_cost_int / dalys_avert,
+          direct_hosp_cost = hosp_avert * country_meta$cost_per_hosp,
+          direct_amb_cost = amb_avert * country_meta$cost_per_amb,
+          direct_nonmed_cost = nonmed_avert * country_meta$cost_per_nonmedical,
+          indirect_hosp_cost = hosp_avert * country_meta$indirectcost_per_hosp,
+          indirect_amb_cost = amb_avert * country_meta$indirectcost_per_amb,
+          indirect_nonmed_cost = nonmed_avert * country_meta$indirectcost_per_nonmedical
         )
-      })
-    }, ignoreNULL = FALSE)
 
-    output$mymap <- renderLeaflet(make_map(cur_dat_aug(),
-      country_meta, last_admin))
+        dat <- bind_cols(d, newdat) # need d first so it remains an "sf" object
 
-    # update leaflet plot when user updates inputs
-    observeEvent(submit(), {
-      dat <- cur_dat_aug()
-      if (!is.null(dat)) {
-        cost <- dat$cost_per_case_avert
+        # update leaflet output
+        cost <- dat$cost_per_person
         cost <- ifelse(is.infinite(cost), NA, cost)
         # mybins <- c(0, 10, 20, 50, 100, 500, Inf)
         # mybins <- c(0, 2, 5, 10, 20, 50, 100, 500, Inf)
@@ -151,7 +145,7 @@ year_tab_server <- function(
             fillColor = ~pal1(cost),
             smoothFactor = 0.2,
             fillOpacity = 0.75,
-            label = maptooltips(dat, last_admin), # function defined below
+            label = maptooltips(dat), # function defined below
             labelOptions = labelOptions(
               style = list("font-weight" = "normal", padding = "3px 8px"),
               textsize = "13px", 
@@ -166,14 +160,20 @@ year_tab_server <- function(
             values = ~cost,
             title = "Cost per case averted",
             opacity = 0.9)
-      }
+
+        dat
+      })
     }, ignoreNULL = FALSE)
+
+    output$mymap <- renderLeaflet(make_map(cur_dat_aug(),
+      country_meta))
+
 
     totalbudget <- reactive({
       if (is.null(cur_dat_aug())) {
         return(NULL)
       }
-      res <- sum(cur_dat_aug()$tot_ann_cost_target)
+      res <- sum(cur_dat_aug()$tot_cost_int)
       res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
       paste0("$", format(res, trim = TRUE), "M")
     })
@@ -183,7 +183,7 @@ year_tab_server <- function(
         return(NULL)
       }
       # TODO: check why there are NAs
-      sum(cur_dat_aug()$case_target_area, na.rm = TRUE)
+      sum(cur_dat_aug()$cases_avert, na.rm = TRUE)
     })
 
     casesaverted <- reactive({
@@ -196,311 +196,15 @@ year_tab_server <- function(
     })
 
     pctaverted <- reactive({
-      if (is.null(casesavertednum())) {
+      if (is.null(casesavertednum()) || is.null(cur_dat_aug())) {
         return(NULL)
       }
-      round(100 * casesavertednum() / country_meta$total_national_cases, 1)
+      round(100 * casesavertednum() / sum(cur_dat_aug()$tot_cases, na.rm = TRUE), 1)
     })
 
     output$totalbudget <- renderText(totalbudget())
     output$casesaverted <- renderText(casesaverted())
     output$pctaverted <- renderText(pctaverted())
-
-    # # reactive data frames used in outputs
-    # outputs <- reactive({
-    #   if (is.null(cur_dat_aug()))
-    #     return(NULL)
-    #   cur_dat_aug() %>%
-    #     as.data.frame() %>%
-    #     select(any_of(c(adm_names,
-    #       "km_target", "x_pdmean", "cost_per_pers_cov")))
-    # })
-
-    # keyindicators <- reactive({
-    #   if (is.null(cur_dat_aug()))
-    #     return(NULL)
-    #   cur_dat_aug() %>%
-    #     as.data.frame() %>%
-    #     select(any_of(c(adm_names, "km_target",
-    #       "tot_ann_cost_target", "cost_per_pers_cov",
-    #       "cost_per_case_avert",  "cost_per_daly_avert")))
-    # })
-
-
-
-    # healthoutcomes <- reactive({
-    #   if (is.null(cur_dat_aug()))
-    #     return(NULL)
-    #   cur_dat_aug() %>%
-    #     as.data.frame() %>%
-    #     select(any_of(c(adm_names, "prev_inc_m",
-    #       "case_target_area", "cost_per_case_avert",
-    #       "daly_target_area",  "cost_per_daly_avert")))
-    # })
-
-    # healthsystemoutcomes <- reactive({
-    #   if (is.null(cur_dat_aug()))
-    #     return(NULL)
-    #   cur_dat_aug() %>%
-    #     as.data.frame() %>%
-    #     select(any_of(c(adm_names, "amb_cases", "hosp_cases",
-    #       "amb_cost_avert", "hosp_cost_avert",
-    #       "tot_health_sys_cost_avert")))
-    # })
-
-    # economicoutcomes <- reactive({
-    #   if (is.null(cur_dat_aug()))
-    #     return(NULL)
-    #   cur_dat_aug() %>%
-    #     as.data.frame() %>%
-    #     select(any_of(c(adm_names, "death_target_area",
-    #       "cost_per_death_avert", "econ_loss_death")))
-    # })
-
-    # # make_map() defined later in this file
-    # output$mymap <- renderLeaflet(make_map(cur_dat_aug(),
-    #   country_meta, last_admin))
-
-    # # output$outputs <- shiny::renderDataTable(outputs(), options = dt_opts10)
-
-    # output$outputs <- shiny::renderUI({
-    #   datatable(
-    #     outputs(),
-    #     id = "outputs",
-    #     columns = list(
-    #       km_target = colDef(name = "Target Area (KM2)",
-    #         format = colFormat(separators = TRUE, digits = 1)),
-    #       cost_per_pers_cov = colDef(name = "Cost per person",
-    #         format = colFormat(separators = TRUE, currency = "USD")),
-    #       x_pdmean = colDef(name = "Population in Target Area",
-    #         format = colFormat(separators = TRUE, digits = 1))
-    #     )
-    #   )
-    # })
-
-    # output$keyindicators <- shiny::renderUI({
-    #   datatable(
-    #     keyindicators(),
-    #     id = "keyindicators",
-    #     columns = list(
-    #       km_target = colDef(name = "Target Area (KM2)",
-    #         format = colFormat(separators = TRUE, digits = 1)),
-    #       tot_ann_cost_target = colDef(name = "Total",
-    #         format = colFormat(separators = TRUE, currency = "USD")),
-    #       cost_per_pers_cov = colDef(name = "Per person",
-    #         format = colFormat(separators = TRUE, currency = "USD"),
-    #         width = 120),
-    #       cost_per_case_avert = colDef(name = "Per case",
-    #         format = colFormat(separators = TRUE, currency = "USD"),
-    #         width = 120),
-    #       cost_per_daly_avert = colDef(name = "Per DALY",
-    #         format = colFormat(separators = TRUE, currency = "USD"),
-    #         width = 120)
-    #     )
-    #   )
-    # })
-
-    # # output$keyindicatorsplot <- renderPlotly({
-    # #   if (is.null(keyindicators()))
-    # #     return(NULL)
-    # #   ggplot(data = keyindicators() %>% filter(`Per case` < 1000),
-    # #     aes_string(x = "`Per DALY`", y = "`Per case`",
-    # #       color = first_admin, label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # xlim(0, 10) +
-    # #     # ylim(0, 10) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Cost Per Case Averted (USD)",
-    # #       x = "Cost per DALY Averted (USD)") +
-    # #     ggtitle(paste("Key Cost Indicators Colored by", first_admin,
-    # #       "(with cost per case < 1000)"))
-    # # })
-
-    # # output$keyindicatorsplot2 <- renderPlotly({
-    # #   if (is.null(keyindicators()))
-    # #     return(NULL)
-    # #   keyindicators() %>%
-    # #     arrange(-Total) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "Total", color = first_admin,
-    # #       label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 100000000) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Total Annual Cost for Target Area (USD)",
-    # #       x = paste(first_admin, "Rank")) +
-    # #     ggtitle(paste("Total Annual Program Cost Colored by", first_admin)) +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-    # output$healthoutcomesdata <- shiny::renderUI({
-    #   datatable(
-    #     healthoutcomes(),
-    #     id = "healthoutcomes",
-    #     columns = list(
-    #       prev_inc_m = colDef(name = "Incidence", width = 150),
-    #       case_target_area = colDef(name = "Cases",
-    #         format = colFormat(separators = TRUE, digits = 0),
-    #         width = 120),
-    #       cost_per_case_avert = colDef(name = "Cost per case",
-    #         format = colFormat(separators = TRUE, currency = "USD"),
-    #         width = 150),
-    #       daly_target_area = colDef(name = "DALYs",
-    #         format = colFormat(separators = TRUE, digits = 0),
-    #         width = 130),
-    #       cost_per_daly_avert = colDef(name = "Cost per DALY",
-    #         format = colFormat(separators = TRUE, currency = "USD"),
-    #         width = 150)
-    #     )
-    #   )
-    # })
-
-    # output$totalbudget <- renderText(totalbudget())
-    # output$casesaverted <- renderText(casesaverted())
-    # output$pctaverted <- renderText(pctaverted())
-
-    # # output$healthoutcomesdataplot <- renderPlotly({
-    # #   if (is.null(healthoutcomes()))
-    # #     return(NULL)
-    # #   healthoutcomes() %>%
-    # #     arrange(desc(.data$"Cost per case")) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "`Cost per case`",
-    # #       color = first_admin, label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 10) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Cost Per Case Averted (USD)",
-    # #       x = paste(last_admin, "Rank"),
-    # #       title = paste0("Cost Per Case Averted Colored by", first_admin)) +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-    # # output$healthoutcomesdataplot2 <- renderPlotly({
-    # #   if (is.null(healthoutcomes()))
-    # #     return(NULL)
-    # #   healthoutcomes() %>%
-    # #     arrange(desc(.data[["Cases"]])) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "Cases", color = first_admin,
-    # #       label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 10000) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Total Cases in Target Area",
-    # #       x = paste(last_admin, "Rank")) +
-    # #     ggtitle("Total Cases in Target Area") +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-    # output$healthsystemoutcomesdata <- shiny::renderUI({
-    #   datatable(
-    #     healthsystemoutcomes(),
-    #     id = "healthsystemoutcomes",
-    #     columns = list(
-    #       amb_cases = colDef(name = "Ambulatory Cases",
-    #         format = colFormat(separators = TRUE, digits = 0)),
-    #       hosp_cases = colDef(name = "Hospitalized Cases",
-    #         format = colFormat(separators = TRUE, digits = 0)),
-    #       amb_cost_avert = colDef(name = "Ambulatory Costs",
-    #         format = colFormat(separators = TRUE, currency = "USD")),
-    #       hosp_cost_avert = colDef(name = "Hospital Costs",
-    #         format = colFormat(separators = TRUE, currency = "USD")),
-    #       tot_health_sys_cost_avert = colDef(name = "Total",
-    #         format = colFormat(separators = TRUE, currency = "USD"))
-    #     )
-    #   )
-    # })
-
-    # # output$healthsystemoutcomesdataplot <- renderPlotly({
-    # #   if (is.null(healthsystemoutcomes()))
-    # #     return(NULL)
-    # #   healthsystemoutcomes() %>%
-    # #     arrange(desc(.data$"Ambulatory Costs")) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "`Ambulatory Costs`",
-    # #       color = first_admin, label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 600000) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Total Ambulatory Costs in Target Area",
-    # #       x = paste(last_admin, "Rank")) +
-    # #     ggtitle("Ambulatory Costs Averted in Target Area") +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-    # # output$healthsystemoutcomesdataplot2 <- renderPlotly({
-    # #   if (is.null(healthsystemoutcomes()))
-    # #     return(NULL)
-    # #   healthsystemoutcomes() %>%
-    # #     arrange(desc(.data$"Hospital Costs")) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "`Hospital Costs`",
-    # #       color = first_admin, label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 600000) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Total Hospitalized Costs in Target Area",
-    # #       x = paste(last_admin, "Rank")) +
-    # #     ggtitle("Hospitalized Costs Averted in Target Area") +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-    # output$economicoutcomesdata <- shiny::renderUI({
-    #   datatable(
-    #     economicoutcomes(),
-    #     id = "economicoutcomes",
-    #     columns = list(
-    #       cost_per_death_avert = colDef(name = "Cost per death averted",
-    #         format = colFormat(separators = TRUE, currency = "USD")),
-    #       death_target_area = colDef(name = "Deaths",
-    #         format = colFormat(separators = TRUE, digits = 0)),
-    #       econ_loss_death = colDef(name = "Economic losses",
-    #         format = colFormat(separators = TRUE, currency = "USD"))
-    #     )
-    #   )
-    # })
-
-    # # output$economicoutcomesdataplot <- renderPlotly({
-    # #   if (is.null(economicoutcomes()))
-    # #     return(NULL)
-    # #   economicoutcomes() %>%
-    # #     arrange(desc(.data$"Economic losses")) %>%
-    # #     mutate(rank = seq_len(n())) %>%
-    # #   ggplot(
-    # #     aes_string(x = "rank", y = "`Economic losses`",
-    # #       color = first_admin, label = last_admin)) +
-    # #     geom_point(na.rm = TRUE) +
-    # #     # ggthemes::scale_color_tableau() +
-    # #     # ylim(0, 1000000) +
-    # #     theme_classic() +
-    # #     labs(
-    # #       y = "Total Economic Losses",
-    # #       x = paste(last_admin, "Rank")) +
-    # #     ggtitle(paste0("Economic Losses Averted in Target Areas of ",
-    # #       last_admin, "s")) +
-    # #     theme(axis.text.x = element_text(angle = 45))
-    # # })
-
-
-
   })
 }
 
@@ -533,53 +237,12 @@ datatable <- function(dat, columns, id, pagesize = 10) {
   )
 }
 
-# update data frame with user inputs
-update_data_from_inputs <- function(
-  dat, PLANNING, PREP, PROD, DIST, MONITOR, RELEASE, EFF, AREACOV,
-  PCT_AMB, PCT_HOSP, MORT_RATE, COST_AMB, COST_HOSP,
-  COST_DEATH, country_meta
-) {
-  if (is.null(dat))
-    return(NULL)
-
-  # total cost per kilometer squared, which corresponds to user input
-  dat$tot_ann_cost_km <- PLANNING + PREP + PROD + DIST + MONITOR + RELEASE
-  dat$eff <- EFF
-
-  dat$case_target_area <- dat$x_pdmean * dat$incidence
-  dat$prev_inc_m <- dat$incidence
-  # dat$case_target_area <- dat$x_pdmean * PREV_RATE
-  # dat$prev_inc_m <- PREV_RATE
-
-  dat$death_target_area <- dat$case_target_area * MORT_RATE
-  dat$daly_target_area <- dat$case_target_area * country_meta$daly_per_case
-
-  ## building other variables related to what the user puts in
-  dat$tot_ann_cost_target <- dat$tot_ann_cost_km * dat$km_target * AREACOV
-  dat$cost_per_pers_cov <- dat$tot_ann_cost_target / dat$x_pdmean
-  dat$cost_per_case_avert <- dat$tot_ann_cost_target /
-    (dat$case_target_area * dat$eff)
-  dat$cost_per_death_avert <- dat$tot_ann_cost_target /
-    (dat$death_target_area * dat$eff)
-  dat$cost_per_daly_avert <- dat$tot_ann_cost_target /
-    (dat$daly_target_area * dat$eff)
-
-  dat$amb_cases <- dat$case_target_area * PCT_AMB
-  dat$hosp_cases <- dat$case_target_area * PCT_HOSP
-  dat$amb_cost_avert <- (dat$case_target_area * PCT_AMB) * COST_AMB
-  dat$hosp_cost_avert <- (dat$case_target_area * PCT_HOSP) * COST_HOSP
-  dat$tot_health_sys_cost_avert <- dat$hosp_cost_avert + dat$amb_cost_avert
-  dat$econ_loss_death <- dat$death_target_area * COST_DEATH
-
-  dat
-}
-
 # create leaflet map
-make_map <- function(data, country_meta, last_admin) {
+make_map <- function(data, country_meta) {
   if (is.null(data))
     return(NULL)
 
-  cost <- data$cost_per_case_avert
+  cost <- data$cost_per_person
   cost <- ifelse(is.infinite(cost), NA, cost)
 
   # mybins <- c(0, 10, 20, 50, 100, 500, Inf)
@@ -607,7 +270,7 @@ make_map <- function(data, country_meta, last_admin) {
       color = "black",
       weight = 0.3,
       # label = mytext,
-      label = maptooltips(data, last_admin),
+      label = maptooltips(data),
       labelOptions = labelOptions(
         style = list("font-weight" = "normal", padding = "3px 8px"),
         textsize = "13px",
@@ -630,23 +293,21 @@ format_big <- function(x)
   format(round(as.numeric(x)), big.mark = ",")
 
 # tooltips for updated leaflet map
-maptooltips <- function(dat, last_admin) {
+maptooltips <- function(dat) {
   paste0(
-    last_admin, ": ", dat[[last_admin]], "<br/>",
-    "Target Population: ",  format_big(dat$x_pdmean), "<br/>",
+    "Name: ", dat$name, "<br/>",
+    "Target Population: ",  format_big(dat$tarpop), "<br/>",
     # "Incidence: ", round(dat$prev_inc_m, 3), "<br/>",
-    "Total Area: ",  format_big(dat$area_km2), "<br/>",
-    "Target Area: ",  format_big(dat$km_target), "<br/>",
-    "Total Program Cost (User Generated): ", "$",
-    format_big(dat$tot_ann_cost_target), "<br/>",
+    "Total Area: ",  format_big(dat$areasqkm), "<br/>",
+    "Target Area: ",  format_big(dat$areatsqkm), "<br/>",
+    "Total Cost of Intervention (User Generated): ", "$",
+    format_big(dat$tot_cost_int), "<br/>",
     "Cost per Person (User Generated): ", "$",
-    format_big(dat$cost_per_pers_cov), "<br/>",
+    format_big(dat$cost_per_person), "<br/>",
     "Cost per Case (User Generated): ", "$",
-    format_big(dat$cost_per_case_avert), "<br/>",
+    format_big(dat$cost_per_case), "<br/>",
     "Cost per DALY (User Generated): ", "$",
-    format_big(dat$cost_per_daly_avert), "<br/>",
-    "Cost per death (User Generated): ", "$",
-    format_big(dat$cost_per_death_avert), "<br/>"
+    format_big(dat$cost_per_daly), "<br/>"
   ) %>%
   lapply(htmltools::HTML)
 }

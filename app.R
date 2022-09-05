@@ -34,7 +34,7 @@ app_theme <- bslib::bs_theme(
 )
 
 # loading datasets
-dataset <- readRDS("data.rds")
+# dataset <- readRDS("data.rds")
 
 # load meta data for countries
 source("country_meta.R")
@@ -173,15 +173,15 @@ ui <- bslib::page_fill(
 # back end logic
 # input$tabset is a variable containing the currently-selected tab
 server <- function(input, output, session) {
-  country_tab_server("IDN", dataset, reactive(input$tabset), country_meta$IDN)
-  country_tab_server("BRA", dataset, reactive(input$tabset), country_meta$BRA)
-  country_tab_server("MEX", dataset, reactive(input$tabset), country_meta$MEX)
-  country_tab_server("COL", dataset, reactive(input$tabset), country_meta$COL)
-  country_tab_server("VNM", dataset, reactive(input$tabset), country_meta$VNM)
-  country_tab_server("LKA", dataset, reactive(input$tabset), country_meta$LKA)
-  country_tab_server("IND", dataset, reactive(input$tabset), country_meta$IND)
-  country_tab_server("NGA", dataset, reactive(input$tabset), country_meta$NGA)
-  country_tab_server("BGD", dataset, reactive(input$tabset), country_meta$BGD)
+  country_tab_server("IDN", reactive(input$tabset), country_meta$IDN)
+  country_tab_server("BRA", reactive(input$tabset), country_meta$BRA)
+  country_tab_server("MEX", reactive(input$tabset), country_meta$MEX)
+  country_tab_server("COL", reactive(input$tabset), country_meta$COL)
+  country_tab_server("VNM", reactive(input$tabset), country_meta$VNM)
+  country_tab_server("LKA", reactive(input$tabset), country_meta$LKA)
+  country_tab_server("IND", reactive(input$tabset), country_meta$IND)
+  country_tab_server("NGA", reactive(input$tabset), country_meta$NGA)
+  country_tab_server("BGD", reactive(input$tabset), country_meta$BGD)
 }
 
 # Run the application

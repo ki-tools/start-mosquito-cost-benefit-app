@@ -311,8 +311,7 @@ country_tab_ui <- function(id, country_meta) {
 }
 
 #' @param id country ID (used to access the appropriate data)
-#' @param dataset
-country_tab_server <- function(id, dataset, tab, country_meta) {
+country_tab_server <- function(id, tab, country_meta) {
   moduleServer(id, function(input, output, session) {
     # enable submit button when any input changes
     rvs <- reactiveValues(input_updated = FALSE)
@@ -416,13 +415,13 @@ country_tab_server <- function(id, dataset, tab, country_meta) {
     primaryinputtype <- reactive(input$primaryinputtype)
     submit <- reactive(input$submit)
 
-    year_tab_server("1", id, dataset, tab, inpts, country_meta,
+    year_tab_server("1", id, tab, inpts, country_meta,
       primaryinputtype, submit)
-    year_tab_server("5", id, dataset, tab, inpts, country_meta,
+    year_tab_server("5", id, tab, inpts, country_meta,
       primaryinputtype, submit)
-    year_tab_server("10", id, dataset, tab, inpts, country_meta,
+    year_tab_server("10", id, tab, inpts, country_meta,
       primaryinputtype, submit)
-    year_tab_server("20", id, dataset, tab, inpts, country_meta,
+    year_tab_server("20", id, tab, inpts, country_meta,
       primaryinputtype, submit)
   })
 }

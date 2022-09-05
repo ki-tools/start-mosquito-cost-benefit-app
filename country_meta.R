@@ -7,14 +7,26 @@
 # all dengue visit costs are adjusted to 2022 dollars
 
 CONSTANTS <- list(
-  # multiplier
-  year5multiplier = 5,
-  year10multiplier = 10,
-  year20multiplier = 20,
-  # populationgrowth
-  year5popgrowth = 1.0055,
-  year10popgrowth = 1.011,
-  year20popgrowth = 1.022,
+  year1 = list(
+    multiplier = 1,
+    costs = 1,
+    popgrowth = 1
+  ),
+  year5 = list(
+    multiplier = 5,
+    costs = 2.52,
+    popgrowth = 1.0055
+  ),
+  year10 = list(
+    multiplier = 10,
+    costs = 2.57,
+    popgrowth = 1.011
+  ),
+  year20 = list(
+    multiplier = 20,
+    costs = 2.66,
+    popgrowth = 1.022
+  ),
   # phase-based input defaults and ranges
   planning = 1200,
   planning_range = c(1000, 2500),

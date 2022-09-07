@@ -38,6 +38,7 @@ app_theme <- bslib::bs_theme(
 
 # load meta data for countries
 source("country_meta.R")
+
 lapply(list.files("R", full.names = TRUE), function(x) {
   message(x)
   source(x)

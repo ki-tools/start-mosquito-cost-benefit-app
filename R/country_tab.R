@@ -287,7 +287,9 @@ country_tab_ui <- function(id, country_meta) {
       ),
       div(
         class = "col",
+        style = "overflow: hidden; max-width: calc(100vw - 590px);",
         tabsetPanel(id = "country_tabset",
+          selected = "5-Year",
           tabPanel("1-Year",
             style = tab_style,
             year_tab_ui(ns("1"), id, country_meta)

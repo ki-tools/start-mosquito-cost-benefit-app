@@ -1,7 +1,8 @@
 # this file contains a shiny module for each year tab
 # reference: https://mastering-shiny.org/scaling-modules.html
 
-tab_style <- "height: calc(100vh - 165px); overflow: auto;"
+tab_style <- "height: calc(100vh - 165px); overflow-x: hidden; overflow-y: auto;"
+var_lookup <- readr::read_csv("var_lookup.csv", show_col_types = FALSE)
 
 year_tab_ui <- function(id, country_id, country_meta) {
   ns <- shiny::NS(id)
@@ -37,7 +38,26 @@ year_tab_ui <- function(id, country_id, country_meta) {
         )
       )
     ),
-    withSpinner(leafletOutput(ns("mymap"), height = "600px"))
+    tags$div(
+      style = "position: relative",
+      withSpinner(leafletOutput(ns("mymap"), height = "600px")),
+      tags$div(style = "background: rgba(255,255,255,0.75); position: absolute; right: 0; top: 0; padding-left: 15px; padding-right: 15px; padding-top: 10px; margin-right: 5px; margin-top: 5px; border-radius: 5px",
+        selectInput(ns("mapvariable"), "Variable:", map_var_choices,
+          selected = "cost_per_case", width = "400px")
+      )
+    ),
+    tags$h2("Pre-Intervention Overview"),
+    tags$p("The following table presents details related to selecting a location and population for implementation. Specifically, it presents pre-implementation/baseline area, target area (based on selected population density), total population, target population (based on selected population density), dengue incidence, cases, DALYs, hospitalized cases, ambulatory cases, and not-medically attended cases."),
+    withSpinner(uiOutput(ns("preinterventiontable"))),
+    tags$h2("Intervention Overview"),
+    tags$p("The following table shows the impact of the mosquito release technology in health benefits including cases, DALYs, hospitalized cases, ambulatory cases, and not-medically attended cases that are averted."),
+    withSpinner(uiOutput(ns("interventiontable"))),
+    tags$h2("Intervention Health Benefits"),
+    tags$p("The following table shows the impact of the mosquito release technology in health benefits including cases, DALYs, hospitalized cases, ambulatory cases, and not-medically attended cases that are averted."),
+    withSpinner(uiOutput(ns("healthbenefitstable"))),
+    tags$h2("Intervention Economic Benefits"),
+    tags$p("The following table presents the impact of mosquito release technology in economic benefits including the cost per case, cost per DALY, direct hospitalization costs, direct ambulatory costs, direct non-medical costs, indirect hospitalized costs, indirect hospitalized costs, indirect ambulatory costs, and indirect non-medical costs."),
+    withSpinner(uiOutput(ns("economicbenefitstable")))
   )
 }
 
@@ -101,7 +121,7 @@ year_tab_server <- function(
           tot_nonmed = tot_cases * country_meta$pct_trt_nonmedical * yrdat$multiplier,
           area_cov_int = d$areatsqkm * rv()$AREACOV,
           pop_cov_int = d$tarpop * yrdat$popgrowth * rv()$AREACOV,
-          tot_cost_int = tot_cost * rv()$AREACOV * yrdat$costs,
+          tot_cost_int = tot_cost * area_cov_int * yrdat$costs,
           cost_per_person = tot_cost_int / pop_cov_int,
           cases_avert = pop_cov_int * yrdat$multiplier * d$tardeng,
           dalys_avert = cases_avert * country_meta$daly_per_case,
@@ -121,28 +141,27 @@ year_tab_server <- function(
         dat <- bind_cols(d, newdat) # need d first so it remains an "sf" object
 
         # update leaflet output
-        cost <- dat$cost_per_person
-        cost <- ifelse(is.infinite(cost), NA, cost)
-        # mybins <- c(0, 10, 20, 50, 100, 500, Inf)
-        # mybins <- c(0, 2, 5, 10, 20, 50, 100, 500, Inf)
-        mybins <- c(0, 5, 50, 100, 500, 1000, 5000, 10000, Inf)
+        plot_var <- dat[[input$mapvariable]]
+        plot_var <- ifelse(is.infinite(plot_var), NA, plot_var)
+        mybins <- get_bins(plot_var)
+
         pal1 <- colorBin(
           palette = "viridis",
-          domain = cost,
+          domain = plot_var,
           na.color = "transparent",
           bins = mybins)
-        # pal1 <- colorNumeric("Reds", cost)
+        # pal1 <- colorNumeric("Reds", plot_var)
         leafletProxy("mymap", data = dat) %>%
           # remove old legend
           clearControls() %>%
           # remove previously plotted polygons
           clearShapes() %>%
-          # add polygons with colors based on cost per case averted
+          # add polygons with colors based on plot_var per case averted
           addPolygons(
             weight = 0.3,
             stroke = TRUE,
             color = "black",
-            fillColor = ~pal1(cost),
+            fillColor = ~pal1(plot_var),
             smoothFactor = 0.2,
             fillOpacity = 0.75,
             label = maptooltips(dat), # function defined below
@@ -152,12 +171,12 @@ year_tab_server <- function(
               direction = "auto"
             )
             # popup = mappopup(dat),
-            # color = ~pal1(cost)
+            # color = ~pal1(plot_var)
           ) %>%
           addLegend(
             position = "bottomleft",
             pal = pal1,
-            values = ~cost,
+            values = ~plot_var,
             title = "Cost per case averted",
             opacity = 0.9)
 
@@ -165,40 +184,71 @@ year_tab_server <- function(
       })
     }, ignoreNULL = FALSE)
 
-    output$mymap <- renderLeaflet(make_map(cur_dat_aug(),
+    output$mymap <- renderLeaflet(make_map(cur_dat_aug(), input$mapvariable,
       country_meta))
 
+    output$interventiontable <- renderUI({
+      datatable(
+        cur_dat_aug(),
+        vars = c("name", "gaul_code",
+          var_lookup$name[var_lookup$group == "Intervention"]),
+        id = "interventiontable"
+      )
+    })
+
+    output$preinterventiontable <- renderUI({
+      datatable(
+        cur_dat_aug(),
+
+        vars = c("name", "gaul_code", "areasqkm", "areatsqkm",
+          "totpop", "tarpop", "totdeng", "tardeng",
+          var_lookup$name[var_lookup$group == "Pre-Intervention"]),
+        id = "preinterventiontable"
+      )
+    })
+
+    output$healthbenefitstable <- renderUI({
+      datatable(
+        cur_dat_aug(),
+
+        vars = c("name", "gaul_code",
+          var_lookup$name[var_lookup$group == "Health Benefits"]),
+        id = "healthbenefitstable"
+      )
+    })
+
+    output$economicbenefitstable <- renderUI({
+      datatable(
+        cur_dat_aug(),
+
+        vars = c("name", "gaul_code",
+          var_lookup$name[var_lookup$group == "Economic Benefits"]),
+        id = "economicbenefitstable"
+      )
+    })
 
     totalbudget <- reactive({
-      if (is.null(cur_dat_aug())) {
+      if (is.null(cur_dat_aug()))
         return(NULL)
-      }
-      res <- sum(cur_dat_aug()$tot_cost_int)
-      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
-      paste0("$", format(res, trim = TRUE), "M")
+      number_format(sum(cur_dat_aug()$tot_cost_int), dollars = TRUE)
     })
 
     casesavertednum <- reactive({
-      if (is.null(cur_dat_aug())) {
+      if (is.null(cur_dat_aug()))
         return(NULL)
-      }
       # TODO: check why there are NAs
       sum(cur_dat_aug()$cases_avert, na.rm = TRUE)
     })
 
     casesaverted <- reactive({
-      if (is.null(casesavertednum())) {
+      if (is.null(casesavertednum()))
         return(NULL)
-      }
-      res <- casesavertednum()
-      res <- prettyNum(round(res / 1e6, 1), big.mark = ",", scientific = FALSE)
-      paste0(format(res, trim = TRUE), "M")
+      number_format(casesavertednum(), dollars = FALSE)
     })
 
     pctaverted <- reactive({
-      if (is.null(casesavertednum()) || is.null(cur_dat_aug())) {
+      if (is.null(casesavertednum()) || is.null(cur_dat_aug()))
         return(NULL)
-      }
       round(100 * casesavertednum() / sum(cur_dat_aug()$tot_cases, na.rm = TRUE), 1)
     })
 
@@ -208,19 +258,69 @@ year_tab_server <- function(
   })
 }
 
-datatable <- function(dat, columns, id, pagesize = 10) {
+
+map_var_choices <- list()
+for (grp in setdiff(unique(var_lookup$group), "General")) {
+  idx <- var_lookup$group == grp
+  map_var_choices[[grp]] <-
+    structure(as.list(var_lookup$name[idx]), names = var_lookup$desc[idx])
+}
+
+number_format <- function(x, dollars = FALSE) {
+  res <- ifelse(x > 999999999,
+    paste0(prettyNum(round((x / 1000000000), 2),
+      big.mark = ",", scientific = FALSE), "B"),
+    ifelse(x > 999999,
+      paste0(prettyNum(round((x / 1000000), 1),
+        big.mark = ",", scientific = FALSE), "M"),
+      ifelse(x > 999,
+        paste0(prettyNum(round((x / 1000), 1),
+          big.mark = ",", scientific = FALSE), "K"),
+        prettyNum(round(x))
+      )
+    )
+  )
+  if (dollars) {
+    return(paste0("$", res))
+  } else {
+    return(res)
+  }
+}
+
+datatable <- function(dat, vars, id, pagesize = 15) {
   if (is.null(dat))
     return(NULL)
+
+  columns <- list()
+  for (vr in vars) {
+    cur_row <- var_lookup[var_lookup$name == vr, ]
+    if (cur_row$type == "none") {
+      fmt <- colFormat()
+    } else if (cur_row$type == "number") {
+      fmt <- colFormat(digits = 2, separators = TRUE)
+    } else if (cur_row$type == "currency") {
+      fmt <- colFormat(digits = 2, currency = "USD", separators = TRUE)
+    }
+    columns[[vr]] <- colDef(name = cur_row$desc, format = fmt, minWidth = 175,
+      sticky = if (vr == "name") "left" else NULL,
+      style = "border-right: 1px solid lightgray")
+  }
+
   htmltools::browsable(
     tagList(
       reactable(
-        dat,
+        as_tibble(dat)[, vars],
         searchable = TRUE,
         defaultPageSize = pagesize,
         elementId = paste0(id, "-table"),
         theme = reactableTheme(
           style = list(
             fontFamily = "PT Mono, Segoe UI, Helvetica, Arial, sans-serif"
+          ),
+          headerStyle = list(
+            borderRight = "1px solid lightgray",
+            background = "#efefef",
+            paddingTop = "3px"
           )
         ),
         columns = columns,
@@ -237,24 +337,35 @@ datatable <- function(dat, columns, id, pagesize = 10) {
   )
 }
 
+get_bins <- function(x) {
+  # calculate bins by roughly equal number of observations in each
+  tmp <- sort(x[!is.na(x)])
+  tmp2 <- tmp[seq(1, length(tmp), length = 8)]
+  unlist(lapply(seq_along(tmp2), function(ii) {
+    if (ii == 1)
+      return(pretty(tmp2[ii])[1])
+    pretty(tmp2[ii])[2]
+  }))
+}
+
 # create leaflet map
-make_map <- function(data, country_meta) {
+make_map <- function(data, variable, country_meta) {
   if (is.null(data))
     return(NULL)
 
-  cost <- data$cost_per_person
-  cost <- ifelse(is.infinite(cost), NA, cost)
+  plot_var <- data[[variable]]
+  plot_var <- ifelse(is.infinite(plot_var), NA, plot_var)
 
   # mybins <- c(0, 10, 20, 50, 100, 500, Inf)
   # mybins <- c(0, 2, 5, 10, 20, 50, 100, 500, Inf)
-  mybins <- c(0, 5, 50, 100, 500, 1000, 5000, 10000, Inf)
+  mybins <- get_bins(plot_var)
   pal1 <- colorBin(
     palette = "viridis",
-    domain = cost,
+    domain = plot_var,
     na.color = "transparent",
     bins = mybins)
 
-  # pal1 <- colorNumeric("viridis", cost)
+  # pal1 <- colorNumeric("viridis", plot_var)
   leaflet(data) %>%
     addTiles() %>%
     setView(
@@ -264,7 +375,7 @@ make_map <- function(data, country_meta) {
     ) %>%
     addPolygons(
       # fillColor = ~mypalette(data$km_target),
-      fillColor = ~pal1(cost),
+      fillColor = ~pal1(plot_var),
       stroke = TRUE,
       fillOpacity = 0.75,
       color = "black",
@@ -281,10 +392,10 @@ make_map <- function(data, country_meta) {
       # pal = mypalette,
       pal = pal1,
       # values = ~data$km_target,
-      values = ~cost,
+      values = ~plot_var,
       opacity = 0.9,
       # title = "Target Area (KM2)",
-      title = "Cost per case averted",
+      title = var_lookup$desc[var_lookup$name == variable],
       position = "bottomleft") %>%
     addProviderTiles(providers$CartoDB.Positron)
 }

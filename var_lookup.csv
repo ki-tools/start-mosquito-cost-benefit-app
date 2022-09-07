@@ -1,0 +1,31 @@
+﻿name,desc,group,type
+name,Name,General,none
+gaul_code,GAUL code,General,none
+areasqkm,Total area (km2),General,number
+areatsqkm,Targeted area (km2),General,number
+totpop,Total population,General,number
+tarpop,Target population,General,number
+totdeng,Mean dengue incidence,General,number
+tardeng,Mean dengue incidence in target area,General,number
+tot_cases,Total number of cases of dengue (without intervention),Pre-Intervention,number
+tot_dalys,Total number of DALYs (without intervention),Pre-Intervention,number
+tot_hosp,Total number of hospitalized cases (without intervention),Pre-Intervention,number
+tot_amb,Total number of ambulatory cases (without intervention),Pre-Intervention,number
+tot_nonmed,Total number of non-medically treated cases (without intervention),Pre-Intervention,number
+area_cov_int,Area covered by intervention,Intervention,number
+pop_cov_int,Population covered by intervention,Intervention,number
+tot_cost_int,Total cost of intervention,Intervention,currency
+cost_per_person,Cost per person,Intervention,currency
+cases_avert,Cases averted,Health Benefits,number
+dalys_avert,DALYs averted,Health Benefits,number
+hosp_avert,Hospitalized cases averted,Health Benefits,number
+amb_avert,Ambulatory cases averted,Health Benefits,number
+nonmed_avert,Non-medically treated cases averted,Health Benefits,number
+cost_per_case,Cost per case averted,Economic Benefits,currency
+cost_per_daly,Cost per daly averted,Economic Benefits,currency
+direct_hosp_cost,Direct hospitalized costs averted,Economic Benefits,currency
+direct_amb_cost,Direct ambulatory costs averted,Economic Benefits,currency
+direct_nonmed_cost,Direct non-medical costs averted,Economic Benefits,currency
+indirect_hosp_cost,Indirect hospitalized costs averted,Economic Benefits,currency
+indirect_amb_cost,Indirect ambulatory costs averted,Economic Benefits,currency
+indirect_nonmed_cost,Indirect non-medical costs averted,Economic Benefits,currency

@@ -13,8 +13,8 @@ req_vars <- c(
   "areatsqkm", # targeted area of admin 2 geography in squared kilometers
   "totpop", # total population in the admin 2 geography
   "tarpop", # target population in the admin 2 geography
-  "totdeng", # mean dengue incidence in the admin 2 geography
-  "tardeng" # mean dengue incidence in target area of admin2 geo
+  "totdeng" # mean dengue incidence in the admin 2 geography
+  # "tardeng" # mean dengue incidence in target area of admin2 geo
 )
 
 if (!dir.exists("data"))
@@ -30,24 +30,33 @@ process <- function(pop) {
   if (!dir.exists(file.path("data", pop)))
     dir.create(file.path("data", pop))
 
-  shp_path <- file.path("_preprocess", pop)
+  shp_path <- file.path("_preprocess/data", pop)
   shp <- sf::read_sf(shp_path) %>%
     dplyr::rename_all(tolower)
+
+  idx <- which(names(shp) == "area_sqkm")
+  if (length(idx) == 1)
+    names(shp)[idx] <- "areasqkm"
+
   dat <- shp %>%
     select(all_of(c(req_vars, "geometry")))
   dat
 
   dat <- dat %>%
     mutate(across(c("areasqkm", "areatsqkm", "totpop", "tarpop",
-      "totdeng", "tardeng"), fix_numeric))
+      "totdeng"), fix_numeric))
 
   ds <- split(dat, dat$country_id)
 
   for (nm in names(ds)) {
-    res <- ms_simplify(ds[[nm]], keep = 0.1)
+    res <- ms_simplify(ds[[nm]], keep = 0.5)
     # res <- ds[[nm]]
     saveRDS(res, file = file.path("data", pop, paste0(nm, ".rds")))
   }
 }
 
+process("0")
+process("250")
+process("500")
+process("750")
 process("1000")

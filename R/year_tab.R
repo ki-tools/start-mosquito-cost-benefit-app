@@ -40,7 +40,7 @@ year_tab_ui <- function(id, country_id, country_meta) {
     ),
     tags$div(
       style = "position: relative",
-      withSpinner(leafletOutput(ns("mymap"), height = "600px")),
+      withSpinner(leafletOutput(ns("mymap"), height = "550px")),
       tags$div(style = "background: rgba(255,255,255,0.75); position: absolute; right: 0; top: 0; padding-left: 15px; padding-right: 15px; padding-top: 10px; margin-right: 5px; margin-top: 5px; border-radius: 5px",
         selectInput(ns("mapvariable"), "Variable:", map_var_choices,
           selected = "cost_per_case", width = "400px")
@@ -123,7 +123,7 @@ year_tab_server <- function(
           pop_cov_int = d$tarpop * yrdat$popgrowth * rv()$AREACOV,
           tot_cost_int = tot_cost * area_cov_int * yrdat$costs,
           cost_per_person = tot_cost_int / pop_cov_int,
-          cases_avert = pop_cov_int * yrdat$multiplier * d$tardeng,
+          cases_avert = pop_cov_int * yrdat$multiplier * d$totdeng,
           dalys_avert = cases_avert * country_meta$daly_per_case,
           hosp_avert = cases_avert * country_meta$pct_trt_hosp,
           amb_avert = cases_avert * country_meta$pct_trt_amb,
@@ -201,7 +201,7 @@ year_tab_server <- function(
         cur_dat_aug(),
 
         vars = c("name", "gaul_code", "areasqkm", "areatsqkm",
-          "totpop", "tarpop", "totdeng", "tardeng",
+          "totpop", "tarpop", "totdeng",
           var_lookup$name[var_lookup$group == "Pre-Intervention"]),
         id = "preinterventiontable"
       )
@@ -301,7 +301,7 @@ datatable <- function(dat, vars, id, pagesize = 15) {
     } else if (cur_row$type == "currency") {
       fmt <- colFormat(digits = 2, currency = "USD", separators = TRUE)
     }
-    columns[[vr]] <- colDef(name = cur_row$desc, format = fmt, minWidth = 175,
+    columns[[vr]] <- colDef(name = cur_row$desc, format = fmt, minWidth = cur_row$minwidth,
       sticky = if (vr == "name") "left" else NULL,
       style = "border-right: 1px solid lightgray")
   }
@@ -341,11 +341,11 @@ get_bins <- function(x) {
   # calculate bins by roughly equal number of observations in each
   tmp <- sort(x[!is.na(x)])
   tmp2 <- tmp[seq(1, length(tmp), length = 8)]
-  unlist(lapply(seq_along(tmp2), function(ii) {
+  unique(unlist(lapply(seq_along(tmp2), function(ii) {
     if (ii == 1)
       return(pretty(tmp2[ii])[1])
     pretty(tmp2[ii])[2]
-  }))
+  })))
 }
 
 # create leaflet map

@@ -3,13 +3,11 @@
 
 #loading packages
 library(shiny)
-library(plotly)
 library(leaflet)
 library(leaflet.extras)
 library(dplyr)
 library(sf)
 library(bslib)
-library(showtext)
 library(fontawesome)
 library(reactable)
 library(shinycssloaders)

@@ -1,6 +1,5 @@
 # this file contains a shiny module for each country tab
 # reference: https://mastering-shiny.org/scaling-modules.html
-library(shinycssloaders)
 
 datatable <- function(dat, columns, id, pagesize = 10) {
   if (is.null(dat))
@@ -269,8 +268,8 @@ country_tab_ui <- function(id, country_meta) {
           value = country_meta$cost_per_amb, min = 0, max = 1000000),
         numericInput(ns("COST_HOSP"), "Cost per Hospitalized Visit:",
           value = country_meta$cost_per_hosp, min = 0, max = 1000000),
-        numericInput(ns("COST_DEATH"), "Cost per Death:",
-          value = country_meta$cost_per_child_fat, min = 0, max = 1000000),
+        # numericInput(ns("COST_DEATH"), "Cost per Death:",
+        #   value = country_meta$cost_per_child_fat, min = 0, max = 1000000),
         tags$div(
           class = "d-flex flex-row-reverse",
           style = "position: absolute; bottom: 0px; background: #bababa; width: 319px; margin-left: -11px; z-index: 9000; padding-left: 8px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px;",

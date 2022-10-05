@@ -114,16 +114,16 @@ year_tab_server <- function(
         d <- cur_dat()
 
         newdat <- tibble(
-          tot_cases = d$totpop * yrdat$popgrowth * d$totdeng * yrdat$multiplier * rv()$EFFECTIVENESS,
+          tot_cases = d$totpop * yrdat$popgrowth * d$totdeng * yrdat$multiplier * rv()$EFFECTIVENESS / 100,
           tot_dalys = tot_cases * country_meta$daly_per_case * yrdat$multiplier,
           tot_hosp = tot_cases * country_meta$pct_trt_hosp * yrdat$multiplier,
           tot_amb = tot_cases * country_meta$pct_trt_amb * yrdat$multiplier,
           tot_nonmed = tot_cases * country_meta$pct_trt_nonmedical * yrdat$multiplier,
-          area_cov_int = d$areatsqkm * rv()$AREACOV,
-          pop_cov_int = d$tarpop * yrdat$popgrowth * rv()$AREACOV,
+          area_cov_int = d$areatsqkm * rv()$AREACOV / 100,
+          pop_cov_int = d$tarpop * yrdat$popgrowth * (rv()$AREACOV / 100) * yrdat$multiplier,
           tot_cost_int = tot_cost * area_cov_int * yrdat$costs,
           cost_per_person = tot_cost_int / pop_cov_int,
-          cases_avert = pop_cov_int * yrdat$multiplier * d$totdeng,
+          cases_avert = pop_cov_int * d$totdeng * rv()$EFFECTIVENESS / 100,
           dalys_avert = cases_avert * country_meta$daly_per_case,
           hosp_avert = cases_avert * country_meta$pct_trt_hosp,
           amb_avert = cases_avert * country_meta$pct_trt_amb,
@@ -408,7 +408,7 @@ maptooltips <- function(dat) {
   paste0(
     "Name: ", dat$name, "<br/>",
     "Target Population: ",  format_big(dat$tarpop), "<br/>",
-    # "Incidence: ", round(dat$prev_inc_m, 3), "<br/>",
+    "Incidence: ", round(dat$totdeng, 3), "<br/>",
     "Total Area: ",  format_big(dat$areasqkm), "<br/>",
     "Target Area: ",  format_big(dat$areatsqkm), "<br/>",
     "Total Cost of Intervention (User Generated): ", "$",
